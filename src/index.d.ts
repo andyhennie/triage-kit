@@ -15,7 +15,7 @@ export function listKey(e: KeyEventLike): ListAction | null
 export function applyListKey<T extends Id>(state: ListState<T>, ids: T[], action: string): ListState<T>
 export function reconcile<T extends Id>(state: ListState<T>, ids: T[]): ListState<T>
 export function afterAction<T extends Id>(args: {
-  ids: T[]; current: T | null; selection: Set<T>; affected?: Set<T> | T[]; left?: T[] | Set<T>; refused?: T[]
+  ids: T[]; current: T | null; selection: Set<T>; selectionAnchor?: T | null; affected?: Set<T> | T[]; left?: T[] | Set<T>; refused?: T[]
 }): ListState<T>
 
 export function isField(e: KeyEventLike): boolean

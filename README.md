@@ -50,6 +50,11 @@ Guards, in this order: an open modal (`modal: true`), IME composition and
 `TEXTAREA`) and focused controls (`BUTTON`, `SUMMARY`) keep their keys, except
 Ctrl+←/→, which still works on a button. Ctrl and Alt letters are never bound.
 
+Your `keys` are checked before the reserved keys (←/→, Enter, O, U), so an app
+may bind ← to a decision or Enter to its main action on purpose. Ctrl+↵ is
+accepted next to ⌘↵ because Super often belongs to the window manager on
+Linux. Queue groups (Ctrl+↑/↓) are not part of v0.1.
+
 ## API
 
 Selection: `selectOne`, `selectRange`, `selectAll`, `stepId`, `nextAfter`,
@@ -64,6 +69,9 @@ Batch: `batchFor(rows, selection, decision?, {usable})` → `{items, skipped,
 tooMany}`. Without a `decision` each row gets its own `proposal` when
 `usable(proposal)`; other rows are skipped, never guessed. `MAX_BATCH` is 500.
 `undoOf(batch)` gives the items that restore the previous decisions.
+`batchFor` is selection approval. "Approve list" (⌘↵ on a frozen visible list,
+one common suggestion, refused when any row lacks it) is routed by `routeKey`
+but left to the caller in v0.1.
 
 ## The contract, briefly
 

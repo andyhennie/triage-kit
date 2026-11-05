@@ -5,7 +5,7 @@
   "license": "MIT",
   "type": "module",
   "exports": {
-    ".": { "types": "./src/index.d.ts", "default": "./src/index.js" }
+    ".": { "types": "./src/index.d.ts", "import": "./src/index.js" }
   },
   "files": ["src"],
   "scripts": { "test": "node --test \"test/*.test.js\" && sh scripts/check-public.sh" },

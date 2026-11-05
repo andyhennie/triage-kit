@@ -64,12 +64,13 @@ export function reconcile(state,ids){
 // otherwise the cursor stays and the selected rows still shown stay selected. Rows the batch
 // refused are selected instead, so it is plain what was not done.
 // affected: the rows the batch was for (default: the selection); left: rows that leave the list.
-export function afterAction({ids,current,selection,affected=selection,left=[],refused=[]}){
+// selectionAnchor: kept when the cursor stays and the anchor is still shown.
+export function afterAction({ids,current,selection,selectionAnchor,affected=selection,left=[],refused=[]}){
   const gone=new Set(left),shown=ids.filter(id=>!gone.has(id)),stayed=refused.filter(id=>shown.includes(id))
   if(stayed.length)return {selection:new Set(stayed),current:stayed[0],selectionAnchor:stayed[0]}
   if(current!=null&&gone.has(current)){
     const next=nextAfter(ids,current,new Set([...affected,...gone]))
     return {selection:new Set(next==null?[]:[next]),current:next,selectionAnchor:next}
   }
-  return {selection:new Set([...selection].filter(id=>shown.includes(id))),current,selectionAnchor:current}
+  return {selection:new Set([...selection].filter(id=>shown.includes(id))),current,selectionAnchor:selectionAnchor!=null&&shown.includes(selectionAnchor)?selectionAnchor:current}
 }

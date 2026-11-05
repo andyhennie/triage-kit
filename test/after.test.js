@@ -23,6 +23,14 @@ test('after a batch the cursor moves on like Triage, and refused rows stay selec
   assert.deepEqual(afterAction({ids,current:1,selection:new Set(ids),left:ids}),{selection:new Set(),current:null,selectionAnchor:null})
 })
 
+test('the Shift anchor survives a batch that keeps the cursor, and a skipped row can take the cursor',()=>{
+  assert.deepEqual(afterAction({ids,current:3,selection:new Set([2,3]),selectionAnchor:2,left:[]}),{selection:new Set([2,3]),current:3,selectionAnchor:2})
+  assert.deepEqual(afterAction({ids,current:3,selection:new Set([3]),selectionAnchor:9,left:[]}).selectionAnchor,3,'an anchor no longer shown falls back to the cursor')
+  // Rows 1 and 2 selected, cursor 1; only 1 was decided (2 had no usable proposal) and left.
+  assert.equal(afterAction({ids,current:1,selection:new Set([1,2]),affected:new Set([1]),left:[1]}).current,2)
+  assert.equal(afterAction({ids,current:1,selection:new Set([1,2]),left:[1]}).current,3,'default: every selected row counts as affected')
+})
+
 test('a focused <summary> keeps its keys, like a button',()=>{
   assert.equal(listKey({key:'ArrowDown',target:{tagName:'SUMMARY'}}),null)
 })
