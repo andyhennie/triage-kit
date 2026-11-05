@@ -8,6 +8,6 @@
     ".": { "types": "./src/index.d.ts", "default": "./src/index.js" }
   },
   "files": ["src"],
-  "scripts": { "test": "node --test "test/*.test.js" && sh scripts/check-public.sh" },
+  "scripts": { "test": "node --test \"test/*.test.js\" && sh scripts/check-public.sh" },
   "keywords": ["triage", "keyboard", "listbox", "selection", "undo"]
 }
