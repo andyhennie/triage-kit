@@ -1,0 +1,15 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "triage-toast",
+  "title": "Triage toast",
+  "description": "A polite live status region for pending and finished batches.",
+  "files": [
+    {
+      "path": "registry/triage/triage-toast.tsx",
+      "content": "import * as React from \"react\"\nimport { cn } from \"@/lib/utils\"\n\n// Pending (\"Keep 3 …\") then the result, announced politely to screen readers.\nexport function TriageToast({ className, children, ...props }: React.ComponentProps<\"span\">) {\n  return (\n    <span role=\"status\" aria-live=\"polite\" data-slot=\"triage-toast\" className={cn(\"truncate whitespace-nowrap\", className)} {...props}>\n      {children}\n    </span>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/triage/triage-toast.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

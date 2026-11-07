@@ -1,0 +1,18 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "triage-footer",
+  "title": "Triage footer",
+  "description": "N selected, total, key hints and the toast.",
+  "registryDependencies": [
+    "https://raw.githubusercontent.com/andyhennie/triage-kit/v0.2.0/public/r/triage-toast.json"
+  ],
+  "files": [
+    {
+      "path": "registry/triage/triage-footer.tsx",
+      "content": "import * as React from \"react\"\nimport { cn } from \"@/lib/utils\"\nimport { TriageToast } from \"@/components/triage/triage-toast\"\n\n// \"N selected · total\", optional key hints in the middle, the toast on the right.\nexport function TriageFooter({ selected, total, toast, className, children, ...props }:\n  { selected: number; total?: React.ReactNode; toast?: React.ReactNode } & React.ComponentProps<\"div\">) {\n  return (\n    <div data-slot=\"triage-footer\" className={cn(\"flex items-center justify-between gap-3 border-t px-1 py-1.5 text-xs text-muted-foreground\", className)} {...props}>\n      <span className=\"shrink-0 whitespace-nowrap\">{selected} selected{total != null && <> · {total}</>}</span>\n      <span className=\"hidden min-w-0 flex-1 overflow-hidden @min-[520px]:block [&_[data-slot=triage-help]]:flex-nowrap\">{children}</span>\n      <TriageToast className=\"shrink-0\">{toast}</TriageToast>\n    </div>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/triage/triage-footer.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

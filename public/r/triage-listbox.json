@@ -1,0 +1,18 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "triage-listbox",
+  "title": "Triage listbox",
+  "description": "Layout, scrolling listbox and rows for useTriageList; side by side with the inspector from 520 px.",
+  "dependencies": [
+    "triage-kit@github:andyhennie/triage-kit#v0.2.0"
+  ],
+  "files": [
+    {
+      "path": "registry/triage/triage-listbox.tsx",
+      "content": "import * as React from \"react\"\nimport { cn } from \"@/lib/utils\"\n\n// List and inspector side by side from 520 px of container width; below that, one column.\n// Only the list scrolls: the layout fills its parent's height.\nexport function TriageLayout({ className, ...props }: React.ComponentProps<\"div\">) {\n  return <div className={cn(\"@container flex h-full min-h-0 flex-col\", className)} {...props} />\n}\n\nexport function TriageColumns({ className, ...props }: React.ComponentProps<\"div\">) {\n  return (\n    <div\n      className={cn(\"min-h-0 flex-1 @min-[520px]:grid @min-[520px]:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] @min-[520px]:gap-3\", className)}\n      {...props}\n    />\n  )\n}\n\n// Spread listProps from useTriageList onto it: role=listbox, aria-*, tabIndex, keys.\nexport const TriageListbox = React.forwardRef<HTMLUListElement, React.ComponentProps<\"ul\">>(\n  function TriageListbox({ className, ...props }, ref) {\n    return (\n      <div className=\"min-h-0 overflow-auto\" data-slot=\"triage-scroll\">\n        <ul\n          ref={ref}\n          data-slot=\"triage-listbox\"\n          className={cn(\"space-y-0.5 rounded-md p-0.5 outline-none focus-visible:ring-2 focus-visible:ring-ring/50\", className)}\n          {...props}\n        />\n      </div>\n    )\n  },\n)\n\n// Spread rowProps(id): role=option, aria-selected, data-current, onMouseDown.\nexport function TriageRow({ className, ...props }: React.ComponentProps<\"li\">) {\n  return (\n    <li\n      data-slot=\"triage-row\"\n      className={cn(\n        \"flex cursor-default items-center gap-2 rounded-md border border-transparent px-2 py-1 text-sm select-none\",\n        \"hover:bg-accent/60 aria-selected:bg-primary/15 data-[current]:border-primary/60\",\n        className,\n      )}\n      {...props}\n    />\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/triage/triage-listbox.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

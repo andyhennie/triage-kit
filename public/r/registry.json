@@ -1,0 +1,45 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "triage-kit",
+  "homepage": "https://github.com/andyhennie/triage-kit",
+  "items": [
+    {
+      "name": "triage-listbox",
+      "type": "registry:component",
+      "title": "Triage listbox",
+      "description": "Layout, scrolling listbox and rows for useTriageList; side by side with the inspector from 520 px.",
+      "dependencies": ["triage-kit@github:andyhennie/triage-kit#v0.2.0"],
+      "files": [{ "path": "registry/triage/triage-listbox.tsx", "type": "registry:component", "target": "components/triage/triage-listbox.tsx" }]
+    },
+    {
+      "name": "triage-inspector",
+      "type": "registry:component",
+      "title": "Triage inspector",
+      "description": "Inspector panel, one-line key help and action buttons that show their key.",
+      "registryDependencies": ["kbd"],
+      "files": [{ "path": "registry/triage/triage-inspector.tsx", "type": "registry:component", "target": "components/triage/triage-inspector.tsx" }]
+    },
+    {
+      "name": "triage-toast",
+      "type": "registry:component",
+      "title": "Triage toast",
+      "description": "A polite live status region for pending and finished batches.",
+      "files": [{ "path": "registry/triage/triage-toast.tsx", "type": "registry:component", "target": "components/triage/triage-toast.tsx" }]
+    },
+    {
+      "name": "triage-footer",
+      "type": "registry:component",
+      "title": "Triage footer",
+      "description": "N selected, total, key hints and the toast.",
+      "registryDependencies": ["https://raw.githubusercontent.com/andyhennie/triage-kit/v0.2.0/public/r/triage-toast.json"],
+      "files": [{ "path": "registry/triage/triage-footer.tsx", "type": "registry:component", "target": "components/triage/triage-footer.tsx" }]
+    },
+    {
+      "name": "triage",
+      "type": "registry:block",
+      "title": "Triage list kit",
+      "description": "Every triage component plus the hook.",
+      "registryDependencies": ["https://raw.githubusercontent.com/andyhennie/triage-kit/v0.2.0/public/r/triage-listbox.json", "https://raw.githubusercontent.com/andyhennie/triage-kit/v0.2.0/public/r/triage-inspector.json", "https://raw.githubusercontent.com/andyhennie/triage-kit/v0.2.0/public/r/triage-footer.json"]
+    }
+  ]
+}
