@@ -86,6 +86,63 @@ but left to the caller in v0.1.
   `aria-selected`. Buttons show their key in `<kbd>` and carry
   `aria-keyshortcuts`.
 
+## React
+
+```js
+import {useTriageList} from 'triage-kit/react'
+
+const t = useTriageList({
+  ids, commit: items => api.decide(items),          // all-or-nothing on your server
+  keys: {1: 'set:keep', 2: 'set:trash'},
+  onAction: route => { if (route.action.startsWith('set:')) decide(route.action.slice(4)); else return false },
+})
+// <ul {...t.listProps}>{rows.map(r => <li key={r.id} {...t.rowProps(r.id)}>…</li>)}</ul>
+// t.run(items, {label, left, record}) · t.undo() · t.toast · t.selection · t.current
+```
+
+`useTriageList` is thin wiring over the pure `triageReducer` (exported from the
+core, so the same state machine works without React). `run` moves the cursor
+at once (contract §4), shows a pending toast, calls `commit`, then shows the
+result or restores the selection, and returns focus to the list. A press while
+a batch is in flight is dropped. `queue` resets the selection when it changes;
+a failure from an older queue does not restore into the new one.
+
+Undo: by default the hook keeps the last 50 batches in memory and replays the
+previous decisions (lost on reload, no changed-since check). That is a
+deviation from the contract's durable server history; pass `onUndo` to own
+undo yourself, for example by posting the last batch id to your server.
+
+React is an optional peer dependency: only `triage-kit/react` imports it.
+
+## shadcn components
+
+Install from the registry in this repository (each item pins the matching
+`triage-kit` release):
+
+```sh
+npx shadcn add https://raw.githubusercontent.com/andyhennie/triage-kit/v0.2.0/public/r/triage.json
+```
+
+| Item | What |
+|---|---|
+| `triage-listbox` | `TriageLayout`, `TriageColumns` (list and inspector side by side from 520 px of container width, only the list scrolls), `TriageListbox`, `TriageRow` |
+| `triage-inspector` | `TriageInspector`, `TriageHelp` (one line of keys), `TriageAction` (button with `<kbd>`, `aria-keyshortcuts`, `title`); uses shadcn's `kbd` |
+| `triage-footer` | "N selected · total", key hints, toast |
+| `triage-toast` | `role="status"` live region |
+| `triage` | all of the above |
+
+## Demo
+
+```sh
+cd demo && npm install && npm run dev      # or: npm run build && npm run e2e
+```
+
+A made-up invoice queue with keep / later / trash, Enter to approve the
+suggestion and U to undo. `demo/e2e.mjs` checks the contract in a real
+browser: optimistic cursor while a request is pending, one request for a
+double press, restore on failure, undo keeping the cursor, focus, guards on
+buttons and fields, aria, and that only the list scrolls.
+
 ## Tests
 
 ```sh

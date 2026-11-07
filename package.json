@@ -1,6 +1,6 @@
 {
   "name": "triage-kit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Keyboard-first triage lists: selection, key routing and batch/undo, with no dependencies.",
   "license": "MIT",
   "type": "module",
@@ -15,7 +15,9 @@
     }
   },
   "files": [
-    "src"
+    "src",
+    "registry",
+    "public/r"
   ],
   "scripts": {
     "test": "node --test \"test/*.test.js\" && sh scripts/check-public.sh"
