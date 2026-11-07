@@ -93,6 +93,10 @@ export function App() {
             </TriageInspector>
           )}
         </TriageColumns>
+        {/* Below 520 px the inspector hides; the same actions stay reachable for touch. */}
+        <div className="flex flex-wrap gap-1.5 pt-2 @min-[520px]:hidden" data-testid="narrow-actions">
+          {Object.entries(KEYS).map(([k, d]) => <TriageAction key={k} shortcut={k} ariaKeys={k} label={LABEL[d]} onClick={() => decide(d)} />)}
+        </div>
         <TriageFooter selected={t.selection.size} total={`${total} kr`} toast={t.toast} data-testid="footer">
           <TriageHelp keys={help} />
         </TriageFooter>

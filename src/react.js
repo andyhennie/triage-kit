@@ -33,33 +33,40 @@ export function useTriageList({ids,commit,onAction,onUndo,queue,global=false,idP
   const focus=useCallback(()=>listRef.current?.focus({preventScroll:true}),[])
   const setToast=useCallback(text=>dispatch({type:'toast',toast:text}),[])
 
-  // One batch: optimistic cursor, pending toast, server call, then result or restore; focus
-  // returns to the list either way. record: what the local undo stack should restore later.
-  const run=useCallback(async(items,{label,left=[],affected,record,undone}={})=>{
-    if(inFlight.current||!items?.length)return false
+  // One request with the whole lifecycle: optimistic cursor, pending toast, the call, then the
+  // result or a restore (reconciled with the rows shown now); focus returns either way.
+  const perform=useCallback(async(call,{label,left=[],affected,record,undone})=>{
+    if(inFlight.current)return false
     inFlight.current=true
     const gen=generation.current
     dispatch({type:'start',ids:live.current.ids,label,left,affected})
     try{
-      await live.current.commit(items)
-      dispatch({type:'done',label,record,undone})
+      const result=await call()
+      dispatch({type:'done',label:typeof result==='string'?result:label,record,undone})
       return true
     }catch(e){
-      dispatch({type:'fail',message:e?.message??String(e),stale:gen!==generation.current})
+      dispatch({type:'fail',message:e?.message??String(e),stale:gen!==generation.current,ids:live.current.ids})
       return false
     }finally{inFlight.current=false;focus()}
   },[focus])
+
+  // One batch. record: what the local undo stack should restore later.
+  const run=useCallback((items,options={})=>{
+    if(!items?.length)return Promise.resolve(false)
+    return perform(()=>live.current.commit(items),options)
+  },[perform])
 
   // U. Local stack (a documented deviation from durable server history): replay the
   // previous decisions; rows come back, nothing leaves, so cursor and selection stay.
   const undo=useCallback((label=n=>`Undone ${n}`)=>{
     const {state,onUndo}=live.current
     if(inFlight.current)return false
-    if(onUndo)return onUndo(api())
+    // App-owned undo (e.g. a server batch id): same busy, error and focus handling as a batch.
+    if(onUndo)return perform(()=>onUndo(api()),{label:typeof label==='function'?'Undone':label,undone:true})
     const last=state.history.at(-1)
     if(!last){setToast('Nothing to undo');return false}
     return run(undoOf(last),{label:typeof label==='function'?label(last.items.length):label,undone:true})
-  },[run,setToast]) // eslint-disable-line react-hooks/exhaustive-deps
+  },[run,perform,setToast]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const api=()=>({state:live.current.state,run,undo,toast:setToast,focus})
 
@@ -70,7 +77,8 @@ export function useTriageList({ids,commit,onAction,onUndo,queue,global=false,idP
     if(e.repeat&&!route.repeat){e.preventDefault();return}
     if(route.action==='list'){e.preventDefault();dispatch({type:'list',ids,arg:route.arg});focus();return}
     if(route.action==='undo'){e.preventDefault();undo();return}
-    if(onAction?.(route,api())!==false)e.preventDefault()
+    // Only a handler that exists and does not return false owns the key.
+    if(onAction&&onAction(route,api())!==false)e.preventDefault()
   },[undo,focus]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(()=>{

@@ -74,6 +74,12 @@ try {
   await p.screenshot({ path: process.env.SHOT ?? '/tmp/triage-kit-demo.png' })
   await p.setViewportSize({ width: 420, height: 520 })
   ok(!(await p.locator('[data-testid=inspector]').isVisible()), 'below 520 px the inspector hides')
+  const narrow = await p.evaluate(() => { const l = document.querySelector('[data-slot=triage-scroll]'); return { page: document.documentElement.scrollHeight - innerHeight, list: l.scrollHeight - l.clientHeight } })
+  ok(narrow.page <= 0 && narrow.list > 0, `below 520 px only the list scrolls too (${JSON.stringify(narrow)})`)
+  await rows.first().click()
+  const count = await rows.count()
+  await p.locator('[data-testid=narrow-actions] button', { hasText: 'Keep' }).click(); await settle()
+  ok(await rows.count() === count - 1, 'below 520 px the actions are still on screen and work')
 } finally {
   await b.close(); server.kill()
 }

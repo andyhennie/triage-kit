@@ -51,6 +51,12 @@ test('rows that stay keep cursor and anchor; history is capped',()=>{
   assert.equal(h.history.at(-1).items[0].decision,HISTORY_LIMIT+4)
 })
 
+test('a failure after a reload restores only rows still shown',()=>{
+  let s=reduce(initialTriage(['a','b']),{type:'start',ids:['a','b'],label:'x',left:['a']},{type:'ids',ids:['b','c']})
+  s=triageReducer(s,{type:'fail',message:'no',ids:['b','c']})
+  assert.deepEqual(cur(s),[['b'],'b'])
+})
+
 test('reconcile after the visible rows change',()=>{
   const s=reduce(initialTriage(ids),{type:'click',ids,id:'c'},{type:'ids',ids:['a','b']})
   assert.deepEqual(cur(s),[['a'],'a'])

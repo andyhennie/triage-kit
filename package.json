@@ -1,6 +1,6 @@
 {
   "name": "triage-kit",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Keyboard-first triage lists: selection, key routing and batch/undo, with no dependencies.",
   "license": "MIT",
   "type": "module",

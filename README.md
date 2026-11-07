@@ -7,7 +7,7 @@ runtime dependencies, so it runs in any framework, in Node tests and in a
 `<script type="module">`.
 
 ```sh
-npm install github:andyhennie/triage-kit#v0.1.0
+npm install github:andyhennie/triage-kit#v0.2.1
 ```
 
 ## The model
@@ -120,7 +120,7 @@ Install from the registry in this repository (each item pins the matching
 `triage-kit` release):
 
 ```sh
-npx shadcn add https://raw.githubusercontent.com/andyhennie/triage-kit/v0.2.0/public/r/triage.json
+npx shadcn add https://raw.githubusercontent.com/andyhennie/triage-kit/v0.2.1/public/r/triage.json
 ```
 
 | Item | What |

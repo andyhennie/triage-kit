@@ -10,7 +10,7 @@ export function TriageLayout({ className, ...props }: React.ComponentProps<"div"
 export function TriageColumns({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      className={cn("min-h-0 flex-1 @min-[520px]:grid @min-[520px]:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] @min-[520px]:gap-3", className)}
+      className={cn("flex min-h-0 flex-1 flex-col @min-[520px]:grid @min-[520px]:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] @min-[520px]:gap-3", className)}
       {...props}
     />
   )
@@ -20,7 +20,7 @@ export function TriageColumns({ className, ...props }: React.ComponentProps<"div
 export const TriageListbox = React.forwardRef<HTMLUListElement, React.ComponentProps<"ul">>(
   function TriageListbox({ className, ...props }, ref) {
     return (
-      <div className="min-h-0 overflow-auto" data-slot="triage-scroll">
+      <div className="min-h-0 flex-1 overflow-auto" data-slot="triage-scroll">
         <ul
           ref={ref}
           data-slot="triage-listbox"

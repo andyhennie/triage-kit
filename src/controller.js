@@ -9,7 +9,7 @@ export const initialTriage=(ids=[])=>({sel:reconcile(emptySel,ids),history:[],to
 
 // event: {type:'ids', ids} | {type:'list', ids, arg} | {type:'click', ids, id, shift}
 //      | {type:'start', ids, label, affected, left} | {type:'done', label, record, undone}
-//      | {type:'fail', message, stale} | {type:'reset', ids} | {type:'toast', toast}
+//      | {type:'fail', message, stale, ids} | {type:'reset', ids} | {type:'toast', toast}
 export function triageReducer(state,event){
   const {sel}=state
   switch(event.type){
@@ -31,7 +31,11 @@ export function triageReducer(state,event){
       if(event.record?.length)history=[...history,{items:event.record}].slice(-HISTORY_LIMIT)
       return {...state,busy:false,before:null,history,toast:`${event.label} ✓`}
     }
-    case 'fail':return {...state,busy:false,sel:event.stale?sel:state.before??sel,before:null,toast:event.message}
+    // Restore the pre-action selection, but only the rows still shown (the list may have reloaded).
+    case 'fail':{
+      const back=event.stale||!state.before?sel:state.before
+      return {...state,busy:false,sel:event.ids?reconcile(back,event.ids):back,before:null,toast:event.message}
+    }
     case 'toast':return {...state,toast:event.toast}
     default:return state
   }

@@ -17,8 +17,9 @@ export type UseTriageListOptions<T extends Id> = RouteConfig & {
   commit: (items: { id: T; decision: any }[]) => Promise<unknown>
   /** Return false when the route was not handled, so the key is not swallowed. */
   onAction?: (route: Route, api: TriageApi<T>) => boolean | void
-  /** The app owns undo (for example a server batch id); omit for the local stack. */
-  onUndo?: (api: TriageApi<T>) => unknown
+  /** The app owns undo (for example a server batch id); omit for the local stack. Resolve with an
+   * optional toast text; reject to show the error. Runs with the same busy guard as a batch. */
+  onUndo?: (api: TriageApi<T>) => Promise<string | void>
   /** Identity of the current queue; a change resets the selection. */
   queue?: unknown
   /** Listen on window instead of the list, so Ctrl+←→ works from sibling controls. */
