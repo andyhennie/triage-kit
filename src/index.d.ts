@@ -34,3 +34,4 @@ export function batchFor<T extends Id, D = string>(
   options?: { usable?: (proposal: D | null | undefined) => boolean }
 ): { items: BatchItem<T, D>[]; skipped: T[]; tooMany: boolean }
 export function undoOf<T extends Id, D = string>(batch: { items: BatchItem<T, D>[] }): { id: T; decision: D | null }[]
+export * from './controller.js'

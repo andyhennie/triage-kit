@@ -5,9 +5,34 @@
   "license": "MIT",
   "type": "module",
   "exports": {
-    ".": { "types": "./src/index.d.ts", "import": "./src/index.js" }
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    },
+    "./react": {
+      "types": "./src/react.d.ts",
+      "import": "./src/react.js"
+    }
   },
-  "files": ["src"],
-  "scripts": { "test": "node --test \"test/*.test.js\" && sh scripts/check-public.sh" },
-  "keywords": ["triage", "keyboard", "listbox", "selection", "undo"]
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "node --test \"test/*.test.js\" && sh scripts/check-public.sh"
+  },
+  "keywords": [
+    "triage",
+    "keyboard",
+    "listbox",
+    "selection",
+    "undo"
+  ],
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  }
 }
