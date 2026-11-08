@@ -93,36 +93,47 @@ templates, plain JS, React). It is optional and has no JavaScript.
 
 ```html
 <link rel="stylesheet" href="…/triage-kit/src/list.css">
+<div class="tk-head"><span>Sender</span><span>Subject</span><span>Date</span></div>
 <div class="tk-list" role="listbox" aria-label="Inbox" aria-multiselectable="true"
      tabindex="0" aria-activedescendant="row-42">
   <div class="tk-row" id="row-42" role="option" aria-selected="true" data-current>
     <span class="tk-cell">Sender</span>
-    <span class="tk-cell tk-grow">Subject</span>
+    <span class="tk-cell">Subject</span>
     <span class="tk-cell tk-num tk-muted">8. nov.</span>
   </div>
 </div>
 ```
 
-Rows are one line: each `.tk-cell` holds text or inline elements and
-truncates with an ellipsis (`<br>` is hidden). Every rule is inside `:where()`,
-so it has zero specificity and your own CSS wins whatever the load order. The
-look is a handful of variables; set them on `.tk-list` itself (an app selector such as `.ledger .tk-list`):
+Rows are one 28 px line (at least 44 px on touch and narrow screens): each
+`.tk-cell` holds text or inline elements and truncates with an ellipsis
+(`<br>` is hidden). Selected rows get a background and a 3 px bar; the bar is
+the focus indicator. `.tk-head` is an optional header on the same grid.
+Every rule is inside `:where()`, so it has zero specificity and your own CSS
+wins whatever the load order.
+
+The look is a few variables, set on any ancestor. Colours read shadcn-style
+app tokens first, so an app's palette and dark mode carry over:
 
 | Variable | Default |
 |---|---|
-| `--tk-row-height` | `28px` (touch and narrow screens: at least 44 px) |
-| `--tk-row-pad-x` / `--tk-gap` | `12px` |
+| `--tk-row-height` | `28px` |
+| `--tk-row-pad-x` / `--tk-gap` | `20px` / `16px` |
 | `--tk-columns` | `minmax(0, 20%) minmax(0, 1fr) fit-content(30%)` |
-| `--tk-font-size` | `13px` |
-| `--tk-accent` | `#2563eb` (cursor bar, focus ring) |
-| `--tk-selection` / `--tk-hover` | mixed from accent / text over canvas |
-| `--tk-canvas` / `--tk-text` / `--tk-muted` / `--tk-border` | system colours |
+| `--tk-font-size` / `--tk-head-font-size` | `13px` / `11px` |
+| `--tk-canvas` / `--tk-text` / `--tk-muted` | `--background` / `--foreground` / `--muted-foreground`, else `#fff` / `#18181b` / `#71717a` |
+| `--tk-border` / `--tk-hover` | `--accent`, else `#f4f4f5` |
+| `--tk-selection` / `--tk-accent` | `--selection` / `--selection-edge`, else `#e8eefd` / `#1147bb` |
+
+A composition is its cells plus a few lines of CSS:
 
 ```css
-.ledger .tk-list { --tk-row-height: 30px; --tk-columns: 90px 1fr 110px; --tk-accent: #15803d; }
+.ledger { --tk-columns: 110px 80px 92px 90px 180px 150px 76px 100px; --tk-gap: 12px;
+          --tk-font-size: 12px; --tk-head-font-size: 9px; }
+.ledger .tk-head { text-transform: uppercase; letter-spacing: .36px; }
 ```
 
-`examples/plain.html` is a plain-JS list on the core functions; serve the repo
+`examples/plain.html` shows two compositions on the core functions, without
+React: `?look=mail` and `?look=ledger` (`examples/look-*.css`). Serve the repo
 root (`python3 -m http.server`) and open it. `?override=before|after` loads
 `examples/override.css` on either side of `list.css`.
 

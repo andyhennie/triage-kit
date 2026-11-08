@@ -1,6 +1,3 @@
 /* An app's own look: plain selectors, no !important. Wins whether loaded before or after list.css. */
-.mail .tk-list {
-  --tk-row-height: 30px;
-  --tk-columns: 160px minmax(0, 1fr) 90px;
-  --tk-accent: #db2777;
-}
+.mail .tk-row { height: 30px; }
+.mail { --tk-accent: #db2777; --tk-columns: 160px minmax(0, 1fr) 90px; }

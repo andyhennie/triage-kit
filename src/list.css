@@ -1,69 +1,80 @@
 /* triage-kit list styles. Framework-free: render this markup from any stack.
  *
+ *   <div class="tk-head"><span>Sender</span><span>Subject</span><span>Date</span></div>
  *   <div class="tk-list" role="listbox" aria-label="…" aria-multiselectable="true"
  *        tabindex="0" aria-activedescendant="row-1">
  *     <div class="tk-row" id="row-1" role="option" aria-selected="true" data-current>
- *       <span class="tk-cell">…</span> <span class="tk-cell tk-grow">…</span>
+ *       <span class="tk-cell">…</span> <span class="tk-cell">…</span>
  *       <span class="tk-cell tk-num">…</span>
  *     </div>
  *   </div>
  *
  * Rows are one line; cells hold text or inline elements and truncate. Every rule is
- * inside :where(), so it has zero specificity and any app selector wins. Restyle by
- * setting the variables below on .tk-list itself (e.g. `.ledger .tk-list`); the defaults
- * are declared there, so values on an ancestor would not reach it. */
+ * inside :where(), so it has zero specificity and any app selector wins.
+ *
+ * Restyle by setting variables on any ancestor (e.g. `.ledger { --tk-gap: 12px }`).
+ * Defaults are the fallbacks below; colours read the app's shadcn-style tokens first
+ * (--background, --foreground, --muted-foreground, --accent, --selection,
+ * --selection-edge), so its palette and dark mode carry over.
+ *
+ *   --tk-row-height 28px      --tk-row-pad-x 20px     --tk-gap 16px
+ *   --tk-columns minmax(0, 20%) minmax(0, 1fr) fit-content(30%)
+ *   --tk-font-size 13px       --tk-head-font-size 11px
+ *   --tk-canvas --tk-text --tk-muted --tk-border --tk-hover --tk-selection --tk-accent
+ */
 
 :where(.tk-list) {
-  --tk-row-height: 28px;
-  --tk-row-pad-x: 12px;
-  --tk-gap: 12px;
-  --tk-columns: minmax(0, 20%) minmax(0, 1fr) fit-content(30%);
-  --tk-font-size: 13px;
-  --tk-canvas: Canvas;
-  --tk-text: CanvasText;
-  --tk-muted: GrayText;
-  --tk-border: color-mix(in srgb, var(--tk-text) 12%, var(--tk-canvas));
-  --tk-accent: #2563eb;
-  --tk-selection: color-mix(in srgb, var(--tk-accent) 12%, var(--tk-canvas));
-  --tk-hover: color-mix(in srgb, var(--tk-text) 4%, var(--tk-canvas));
   overflow: auto;
   min-height: 0;
-  background: var(--tk-canvas);
-  color: var(--tk-text);
-  font-size: var(--tk-font-size);
+  background: var(--tk-canvas, var(--background, #fff));
+  color: var(--tk-text, var(--foreground, #18181b));
+  font-size: var(--tk-font-size, 13px);
   outline-offset: -2px;
 }
-:where(.tk-list:focus-visible) { outline: 2px solid var(--tk-accent); }
+/* The selected rows' bar is the focus indicator, so the list itself draws no ring. */
+:where(.tk-list:focus-visible) { outline: none; }
 
-:where(.tk-row) {
+:where(.tk-row, .tk-head) {
   box-sizing: border-box;
   display: grid;
-  grid-template-columns: var(--tk-columns);
-  gap: var(--tk-gap);
+  grid-template-columns: var(--tk-columns, minmax(0, 20%) minmax(0, 1fr) fit-content(30%));
+  gap: var(--tk-gap, 16px);
   align-items: center;
-  height: var(--tk-row-height);
-  padding: 0 var(--tk-row-pad-x);
-  border-bottom: 1px solid var(--tk-border);
+  padding: 0 var(--tk-row-pad-x, 20px);
+  border-bottom: 1px solid var(--tk-border, var(--accent, #f4f4f5));
+}
+:where(.tk-row) {
+  height: var(--tk-row-height, 28px);
   cursor: default;
   user-select: none;
 }
-:where(.tk-row:hover) { background: var(--tk-hover); }
-:where(.tk-row[aria-selected="true"]) { background: var(--tk-selection); }
-:where(.tk-row[data-current]) { box-shadow: inset 3px 0 var(--tk-accent); }
+:where(.tk-row:hover) { background: var(--tk-hover, var(--accent, #f4f4f5)); }
+:where(.tk-row[aria-selected="true"]) {
+  background: var(--tk-selection, var(--selection, #e8eefd));
+  box-shadow: inset 3px 0 var(--tk-accent, var(--selection-edge, #1147bb));
+}
 
-:where(.tk-cell) {
+/* Optional header row on the same grid. */
+:where(.tk-head) {
+  padding-block: 5px;
+  color: var(--tk-muted, var(--muted-foreground, #71717a));
+  font-size: var(--tk-head-font-size, 11px);
+  font-weight: 600;
+}
+
+:where(.tk-cell, .tk-head > *) {
   display: block;
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  line-height: 1.3;
+  line-height: normal;
 }
 :where(.tk-cell br) { display: none; }
-:where(.tk-muted) { color: var(--tk-muted); }
+:where(.tk-muted) { color: var(--tk-muted, var(--muted-foreground, #71717a)); }
 :where(.tk-num) { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* Touch and narrow screens: a 44 px row target, even when the app sets a smaller height. */
 @media (pointer: coarse), (max-width: 700px) {
-  :where(.tk-row) { height: auto; min-height: max(44px, var(--tk-row-height)); }
+  :where(.tk-row) { height: auto; min-height: max(44px, var(--tk-row-height, 28px)); }
 }
