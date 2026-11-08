@@ -65,7 +65,8 @@ list.addEventListener('keydown',e=>{
 })
 list.addEventListener('mousedown',e=>{
   const row=e.target.closest('.tk-row')
-  if(!row||e.button!==0)return
+  // Ctrl/⌘-click belongs to the context menu or the browser, not the selection.
+  if(!row||e.button!==0||e.ctrlKey||e.metaKey)return
   state=e.shiftKey?selectRange(state,ids,row.dataset.id)??selectOne(state,row.dataset.id):selectOne(state,row.dataset.id)
   render()
 })
