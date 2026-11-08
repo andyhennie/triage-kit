@@ -165,6 +165,27 @@ undo yourself, for example by posting the last batch id to your server.
 
 React is an optional peer dependency: only `triage-kit/react` imports it.
 
+## Optional React workbench
+
+```jsx
+import {TriageWorkbench} from 'triage-kit/workbench'
+import 'triage-kit/workbench.css'   // page layout; imports list.css
+```
+
+A controlled page shell that renders the list markup above, with slots for
+`navigation`, `toolbar`, optional `head` labels, `inspector`, `actions` and
+`status`. Rows are `{id, leading?, title, trailing?}`, one line each (three
+cells on `--tk-columns`). Pass `selection`, `current` and `onSelect(id,
+extend)`; pass `listRef` and `onKeyDown` to connect the core key helpers or
+your own adapter, and `inspectorRef` for Enter-to-inspect. Ctrl/⌘-click and
+clicks on controls inside a row do not change the selection. Labels are
+caller-owned.
+
+The component owns no data, routes, decisions or undo history. Restyle it with
+the same variables as `list.css`, set on any ancestor. React is an optional
+peer; the core stays dependency-free. `node examples/workbench.mjs` writes a
+static page to look at.
+
 ## shadcn components
 
 Install from the registry in this repository (each item pins the matching
