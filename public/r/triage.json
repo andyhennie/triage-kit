@@ -4,9 +4,9 @@
   "title": "Triage list kit",
   "description": "Every triage component plus the hook.",
   "registryDependencies": [
-    "https://raw.githubusercontent.com/andyhennie/triage-kit/v0.2.1/public/r/triage-listbox.json",
-    "https://raw.githubusercontent.com/andyhennie/triage-kit/v0.2.1/public/r/triage-inspector.json",
-    "https://raw.githubusercontent.com/andyhennie/triage-kit/v0.2.1/public/r/triage-footer.json"
+    "https://raw.githubusercontent.com/andyhennie/triage-kit/v0.3.0/public/r/triage-listbox.json",
+    "https://raw.githubusercontent.com/andyhennie/triage-kit/v0.3.0/public/r/triage-inspector.json",
+    "https://raw.githubusercontent.com/andyhennie/triage-kit/v0.3.0/public/r/triage-footer.json"
   ],
   "type": "registry:block"
 }

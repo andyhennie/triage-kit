@@ -25,6 +25,9 @@ export type UseTriageListOptions<T extends Id> = RouteConfig & {
   /** Listen on window instead of the list, so Ctrl+←→ works from sibling controls. */
   global?: boolean
   idPrefix?: string
+  /** Toast after an undo of n rows (default "Undone n") and with an empty history. */
+  undoLabel?: (n: number) => string
+  nothingToUndo?: string
 }
 export function useTriageList<T extends Id = string>(options: UseTriageListOptions<T>): {
   state: TriageState<T>; selection: Set<T>; current: T | null; toast: string; busy: boolean

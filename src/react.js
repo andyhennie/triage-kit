@@ -12,13 +12,14 @@ const IGNORE_CLICK='button,a,input,select,textarea,summary,[data-triage-ignore]'
 //   queue (identity of the current queue; a change resets the selection),
 //   global (listen on window, so Ctrl+←→ works from sibling controls), idPrefix,
 //   and the routeKey config: keys, enter, queues, open, approveList, modal}
-export function useTriageList({ids,commit,onAction,onUndo,queue,global=false,idPrefix='triage-',...routing}){
+export function useTriageList({ids,commit,onAction,onUndo,queue,global=false,idPrefix='triage-',
+  undoLabel=n=>`Undone ${n}`,nothingToUndo='Nothing to undo',...routing}){
   const [state,dispatch]=useReducer(triageReducer,ids,initialTriage)
   const listRef=useRef(null)
   const inFlight=useRef(false) // synchronous: two presses in one frame start one request
   const generation=useRef(0)
   const live=useRef({})
-  live.current={ids,state,commit,onAction,onUndo,routing}
+  live.current={ids,state,commit,onAction,onUndo,routing,undoLabel,nothingToUndo}
 
   const idsKey=ids.join('\u0000')
   useEffect(()=>{dispatch({type:'ids',ids})},[idsKey]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -58,13 +59,13 @@ export function useTriageList({ids,commit,onAction,onUndo,queue,global=false,idP
 
   // U. Local stack (a documented deviation from durable server history): replay the
   // previous decisions; rows come back, nothing leaves, so cursor and selection stay.
-  const undo=useCallback((label=n=>`Undone ${n}`)=>{
-    const {state,onUndo}=live.current
+  const undo=useCallback((label=live.current.undoLabel)=>{
+    const {state,onUndo,nothingToUndo}=live.current
     if(inFlight.current)return false
     // App-owned undo (e.g. a server batch id): same busy, error and focus handling as a batch.
     if(onUndo)return perform(()=>onUndo(api()),{label:typeof label==='function'?'Undone':label,undone:true})
     const last=state.history.at(-1)
-    if(!last){setToast('Nothing to undo');return false}
+    if(!last){setToast(nothingToUndo);return false}
     return run(undoOf(last),{label:typeof label==='function'?label(last.items.length):label,undone:true})
   },[run,perform,setToast]) // eslint-disable-line react-hooks/exhaustive-deps
 

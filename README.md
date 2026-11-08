@@ -7,7 +7,7 @@ runtime dependencies, so it runs in any framework, in Node tests and in a
 `<script type="module">`.
 
 ```sh
-npm install github:andyhennie/triage-kit#v0.2.1
+npm install github:andyhennie/triage-kit#v0.3.0
 ```
 
 ## The model
@@ -120,7 +120,7 @@ Install from the registry in this repository (each item pins the matching
 `triage-kit` release):
 
 ```sh
-npx shadcn add https://raw.githubusercontent.com/andyhennie/triage-kit/v0.2.1/public/r/triage.json
+npx shadcn add https://raw.githubusercontent.com/andyhennie/triage-kit/v0.3.0/public/r/triage.json
 ```
 
 | Item | What |
@@ -142,6 +142,14 @@ suggestion and U to undo. `demo/e2e.mjs` checks the contract in a real
 browser: optimistic cursor while a request is pending, one request for a
 double press, restore on failure, undo keeping the cursor, focus, guards on
 buttons and fields, aria, and that only the list scrolls.
+
+## Classic scripts
+
+Pages that cannot import ES modules load `dist/global/triage-kit.global.js` with
+a plain `<script>`; it sets `window.TriageKit` (and `module.exports` under
+Node). It is generated from `src/` by `npm run bundle`, and `npm test` fails
+when it is stale. ES-module apps (importmap, bundlers) import `src/` directly;
+`src/selection.js` has no imports, so it can be vendored as a single file.
 
 ## Tests
 

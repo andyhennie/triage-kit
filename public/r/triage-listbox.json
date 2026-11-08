@@ -4,7 +4,7 @@
   "title": "Triage listbox",
   "description": "Layout, scrolling listbox and rows for useTriageList; side by side with the inspector from 520 px.",
   "dependencies": [
-    "triage-kit@github:andyhennie/triage-kit#v0.2.1"
+    "triage-kit@github:andyhennie/triage-kit#v0.3.0"
   ],
   "files": [
     {

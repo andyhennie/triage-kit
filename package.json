@@ -1,6 +1,6 @@
 {
   "name": "triage-kit",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Keyboard-first triage lists: selection, key routing and batch/undo, with no dependencies.",
   "license": "MIT",
   "type": "module",
@@ -12,15 +12,18 @@
     "./react": {
       "types": "./src/react.d.ts",
       "import": "./src/react.js"
-    }
+    },
+    "./global": "./dist/global/triage-kit.global.js"
   },
   "files": [
     "src",
+    "dist",
     "registry",
     "public/r"
   ],
   "scripts": {
-    "test": "node --test \"test/*.test.js\" && sh scripts/check-public.sh"
+    "test": "node scripts/bundle.mjs --check && node --test \"test/*.test.js\" && sh scripts/check-public.sh",
+    "bundle": "node scripts/bundle.mjs"
   },
   "keywords": [
     "triage",
