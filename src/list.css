@@ -1,0 +1,68 @@
+/* triage-kit list styles. Framework-free: render this markup from any stack.
+ *
+ *   <div class="tk-list" role="listbox" aria-label="…" aria-multiselectable="true"
+ *        tabindex="0" aria-activedescendant="row-1">
+ *     <div class="tk-row" id="row-1" role="option" aria-selected="true" data-current>
+ *       <span class="tk-cell">…</span> <span class="tk-cell tk-grow">…</span>
+ *       <span class="tk-cell tk-num">…</span>
+ *     </div>
+ *   </div>
+ *
+ * Rows are one line; cells hold text or inline elements and truncate. Every rule is
+ * inside :where(), so it has zero specificity and any app selector wins. Restyle by
+ * setting the variables below on .tk-list (or any ancestor) in the app's own CSS. */
+
+:where(.tk-list) {
+  --tk-row-height: 28px;
+  --tk-row-pad-x: 12px;
+  --tk-gap: 12px;
+  --tk-columns: minmax(0, 20%) minmax(0, 1fr) fit-content(30%);
+  --tk-font-size: 13px;
+  --tk-canvas: Canvas;
+  --tk-text: CanvasText;
+  --tk-muted: GrayText;
+  --tk-border: color-mix(in srgb, var(--tk-text) 12%, var(--tk-canvas));
+  --tk-accent: #2563eb;
+  --tk-selection: color-mix(in srgb, var(--tk-accent) 12%, var(--tk-canvas));
+  --tk-hover: color-mix(in srgb, var(--tk-text) 4%, var(--tk-canvas));
+  overflow: auto;
+  min-height: 0;
+  background: var(--tk-canvas);
+  color: var(--tk-text);
+  font-size: var(--tk-font-size);
+  outline-offset: -2px;
+}
+:where(.tk-list:focus-visible) { outline: 2px solid var(--tk-accent); }
+
+:where(.tk-row) {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: var(--tk-columns);
+  gap: var(--tk-gap);
+  align-items: center;
+  height: var(--tk-row-height);
+  padding: 0 var(--tk-row-pad-x);
+  border-bottom: 1px solid var(--tk-border);
+  cursor: default;
+  user-select: none;
+}
+:where(.tk-row:hover) { background: var(--tk-hover); }
+:where(.tk-row[aria-selected="true"]) { background: var(--tk-selection); }
+:where(.tk-row[data-current]) { box-shadow: inset 3px 0 var(--tk-accent); }
+
+:where(.tk-cell) {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+:where(.tk-cell br) { display: none; }
+:where(.tk-muted) { color: var(--tk-muted); }
+:where(.tk-num) { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Touch and narrow screens: a 44 px row target, even when the app sets a smaller height. */
+@media (pointer: coarse), (max-width: 700px) {
+  :where(.tk-row) { height: auto; min-height: max(44px, var(--tk-row-height)); }
+}

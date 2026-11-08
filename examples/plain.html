@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>triage-kit · plain list</title>
+<!-- ?override=before|after loads an app stylesheet before or after list.css, to show
+     that list.css never wins over app CSS regardless of order. -->
+<script>
+  const order=new URLSearchParams(location.search).get('override')
+  const link=href=>`<link rel="stylesheet" href="${href}">`
+  document.write((order==='before'?link('override.css'):'')+link('../src/list.css')+(order==='after'?link('override.css'):''))
+</script>
+<style>
+  body { margin: 0; font: 14px system-ui, sans-serif; }
+  .page { display: flex; flex-direction: column; height: 100dvh; }
+  .page h1 { margin: 0; padding: 10px 12px; font-size: 14px; }
+</style>
+</head>
+<body>
+<main class="page mail">
+  <h1>Inbox</h1>
+  <div class="tk-list" id="list" role="listbox" aria-label="Inbox" aria-multiselectable="true" tabindex="0"></div>
+</main>
+<script type="module">
+import {reconcile, selectOne, selectRange, applyListKey, routeKey} from '../src/index.js'
+
+const long='A very long subject line that keeps going well past the width of any reasonable column so it has to be truncated with an ellipsis'
+const rows=Array.from({length:30},(_,i)=>({
+  id:`m${i+1}`,
+  from:i%4?`Sender ${i+1}`:`Someone With An Extraordinarily Long Display Name ${i+1}`,
+  subject:i%3?`Message ${i+1}`:`${long} ${i+1}<br>second line`,
+  date:i%5?`${(i%28)+1}. nov.`:'Yesterday, 23:59 (edited much later)',
+}))
+const ids=rows.map(r=>r.id)
+const list=document.getElementById('list')
+let state=reconcile({selection:new Set(),current:null,selectionAnchor:null},ids)
+
+const cell=(text,cls='')=>{const s=document.createElement('span');s.className=`tk-cell ${cls}`.trim();s.innerHTML=text;return s}
+for(const r of rows){
+  const row=document.createElement('div')
+  Object.assign(row,{id:`row-${r.id}`,className:'tk-row'})
+  row.setAttribute('role','option')
+  row.dataset.id=r.id
+  row.append(cell(r.from),cell(r.subject,'tk-grow'),cell(r.date,'tk-num tk-muted'))
+  list.append(row)
+}
+
+function render(){
+  for(const row of list.children){
+    const id=row.dataset.id
+    row.setAttribute('aria-selected',String(state.selection.has(id)))
+    row.toggleAttribute('data-current',id===state.current)
+  }
+  list.setAttribute('aria-activedescendant',`row-${state.current}`)
+  document.getElementById(`row-${state.current}`)?.scrollIntoView({block:'nearest'})
+}
+
+list.addEventListener('keydown',e=>{
+  const route=routeKey(e)
+  if(route?.action!=='list')return
+  e.preventDefault()
+  state=applyListKey(state,ids,route.arg)
+  render()
+})
+list.addEventListener('mousedown',e=>{
+  const row=e.target.closest('.tk-row')
+  if(!row||e.button!==0)return
+  state=e.shiftKey?selectRange(state,ids,row.dataset.id)??selectOne(state,row.dataset.id):selectOne(state,row.dataset.id)
+  render()
+})
+render()
+list.focus()
+</script>
+</body>
+</html>
