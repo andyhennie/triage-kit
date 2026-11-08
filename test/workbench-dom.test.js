@@ -77,11 +77,17 @@ test('click, Shift-click, arrows and Shift-arrows drive selection; Ctrl-click do
   ui.unmount()
 })
 
-test('clicks on controls inside a row leave the selection alone',()=>{
-  const ui=mount()
-  const button=document.createElement('button')
-  ui.row('d').querySelector('.tk-cell').append(button)
-  ui.down(button)
-  assert.deepEqual(ui.selected(),['a'])
-  ui.unmount()
+test('a keyboard move scrolls the new cursor row into view',()=>{
+  const scrolled=[]
+  const original=window.HTMLElement.prototype.scrollIntoView
+  window.HTMLElement.prototype.scrollIntoView=function(options){scrolled.push([this.id,options?.block])}
+  try{
+    const ui=mount()
+    scrolled.length=0
+    ui.key('ArrowDown');ui.key('ArrowDown')
+    assert.deepEqual(scrolled,[[ui.row('b').id,'nearest'],[ui.row('c').id,'nearest']])
+    ui.key('ArrowDown',{shiftKey:true})
+    assert.deepEqual(scrolled.at(-1),[ui.row('d').id,'nearest'])
+    ui.unmount()
+  }finally{window.HTMLElement.prototype.scrollIntoView=original}
 })

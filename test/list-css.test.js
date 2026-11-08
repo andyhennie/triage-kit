@@ -21,7 +21,9 @@ test('every variable has its documented fallback, reading app tokens first',()=>
 test('every list.css rule has zero specificity, so app CSS always wins',()=>{
   const selectors=[...css.matchAll(/([^{}]+)\{/g)].map(m=>m[1].trim()).filter(s=>!s.startsWith('@'))
   assert.ok(selectors.length>5)
-  for(const s of selectors)assert.match(s,/^:where\([^]*\)$/,s)
+  // The whole selector is one :where(...), parens balanced (one nesting level), nothing outside it.
+  for(const s of selectors)assert.match(s,/^:where\((?:[^()]|\((?:[^()]|\([^()]*\))*\))*\)$/,s)
+  assert.doesNotMatch(':where(.a) .b :where(.c)',/^:where\((?:[^()]|\((?:[^()]|\([^()]*\))*\))*\)$/)
 })
 
 test('touch rows keep a 44 px target even under a smaller app height',()=>{

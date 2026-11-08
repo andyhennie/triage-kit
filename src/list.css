@@ -9,7 +9,7 @@
  *     </div>
  *   </div>
  *
- * Rows are one line; cells hold text or inline elements and truncate. Every rule is
+ * Rows are one line; cells hold text or inline elements (no controls) and truncate. Every rule is
  * inside :where(), so it has zero specificity and any app selector wins.
  *
  * Restyle by setting variables on any ancestor (e.g. `.ledger { --tk-gap: 12px }`).
@@ -21,6 +21,7 @@
  *   --tk-columns minmax(0, 20%) minmax(0, 1fr) fit-content(30%)
  *   --tk-font-size 13px       --tk-head-font-size 11px
  *   --tk-canvas --tk-text --tk-muted --tk-border --tk-hover --tk-selection --tk-accent
+ *   --tk-focus-ring 1px solid <accent> (cursor row while the list has keyboard focus)
  */
 
 :where(.tk-list) {
@@ -31,8 +32,17 @@
   font-size: var(--tk-font-size, 13px);
   outline-offset: -2px;
 }
-/* The selected rows' bar is the focus indicator, so the list itself draws no ring. */
+/* Keyboard focus: the selected rows keep their look; the cursor row gets a thin ring
+   (--tk-focus-ring, set to none to drop it), and an empty list rings itself. */
 :where(.tk-list:focus-visible) { outline: none; }
+:where(.tk-list:focus-visible .tk-row[data-current]) {
+  outline: var(--tk-focus-ring, 1px solid var(--tk-accent, var(--selection-edge, #1147bb)));
+  outline-offset: -1px;
+}
+:where(.tk-list:focus-visible:not(:has(.tk-row))) {
+  outline: var(--tk-focus-ring, 1px solid var(--tk-accent, var(--selection-edge, #1147bb)));
+  outline-offset: -1px;
+}
 
 :where(.tk-row, .tk-head) {
   box-sizing: border-box;

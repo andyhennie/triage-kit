@@ -51,7 +51,7 @@ const list=document.getElementById('list'),head=document.getElementById('head')
 list.setAttribute('aria-label',look.title)
 for(const label of look.head)head.append(Object.assign(document.createElement('span'),{textContent:label}))
 
-const ids=Array.from({length:24},(_,i)=>`r${i+1}`)
+const ids=Array.from({length:60},(_,i)=>`r${i+1}`)
 ids.forEach((id,i)=>{
   const row=document.createElement('div')
   Object.assign(row,{id:`row-${id}`,className:'tk-row'})

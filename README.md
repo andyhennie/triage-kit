@@ -106,8 +106,9 @@ templates, plain JS, React). It is optional and has no JavaScript.
 
 Rows are one 28 px line (at least 44 px on touch and narrow screens): each
 `.tk-cell` holds text or inline elements and truncates with an ellipsis
-(`<br>` is hidden). Selected rows get a background and a 3 px bar; the bar is
-the focus indicator. `.tk-head` is an optional header on the same grid.
+(`<br>` is hidden); rows are options, so no buttons, links or inputs inside
+them. Selected rows get a background and a 3 px bar; while the list has
+keyboard focus the cursor row also gets a thin ring (`--tk-focus-ring`). `.tk-head` is an optional header on the same grid.
 Every rule is inside `:where()`, so it has zero specificity and your own CSS
 wins whatever the load order.
 
@@ -123,6 +124,7 @@ app tokens first, so an app's palette and dark mode carry over:
 | `--tk-canvas` / `--tk-text` / `--tk-muted` | `--background` / `--foreground` / `--muted-foreground`, else `#fff` / `#18181b` / `#71717a` |
 | `--tk-border` / `--tk-hover` | `--accent`, else `#f4f4f5` |
 | `--tk-selection` / `--tk-accent` | `--selection` / `--selection-edge`, else `#e8eefd` / `#1147bb` |
+| `--tk-focus-ring` | `1px solid` accent, on the cursor row while the list has keyboard focus |
 
 A composition is its cells plus a few lines of CSS:
 
@@ -163,7 +165,8 @@ previous decisions (lost on reload, no changed-since check). That is a
 deviation from the contract's durable server history; pass `onUndo` to own
 undo yourself, for example by posting the last batch id to your server.
 
-React is an optional peer dependency: only `triage-kit/react` imports it.
+React is an optional peer dependency: only `triage-kit/react` and
+`triage-kit/workbench` import it.
 
 ## Optional React workbench
 
@@ -177,8 +180,9 @@ A controlled page shell that renders the list markup above, with slots for
 `status`. Rows are `{id, leading?, title, trailing?}`, one line each (three
 cells on `--tk-columns`). Pass `selection`, `current` and `onSelect(id,
 extend)`; pass `listRef` and `onKeyDown` to connect the core key helpers or
-your own adapter, and `inspectorRef` for Enter-to-inspect. Ctrl/⌘-click and
-clicks on controls inside a row do not change the selection. Labels are
+your own adapter, and `inspectorRef` for Enter-to-inspect. The cursor row is
+scrolled into view when `current` changes; Ctrl/⌘-click does not change the
+selection. Row cells are text, not controls. Labels are
 caller-owned.
 
 The component owns no data, routes, decisions or undo history. Restyle it with

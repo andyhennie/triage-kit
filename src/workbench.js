@@ -1,13 +1,18 @@
-import {createElement as h, useId} from 'react'
+import {createElement as h, useEffect, useId} from 'react'
 
 /** Controlled list/inspector shell over the list.css markup. Data, selection, keys and
- * persistence belong to the app. */
+ * persistence belong to the app. Rows are options in a listbox: their cells hold text or
+ * inline elements only, never buttons, links or inputs (put actions in `actions`). */
 export function TriageWorkbench({title, navigation, toolbar, head, rows, selection, current, onSelect,
   onKeyDown, listRef, inspectorRef, inspector, actions, status, busy=false,
   labels={list:'Items', inspector:'Inspect', empty:'No items', selected:(n,total)=>`${n} selected · ${total}`}}) {
   const prefix=useId()
   const rowId=id=>`${prefix}-row-${encodeURIComponent(String(id))}`
   const focusList=()=>listRef?.current?.focus({preventScroll:true})
+  // Keyboard moves change `current`; keep that row on screen.
+  useEffect(()=>{
+    if(current!=null)document.getElementById(rowId(current))?.scrollIntoView?.({block:'nearest'})
+  },[current])
   return h('main',{className:'triage-kit-workbench',onKeyDown,'aria-busy':busy},
     h('header',{className:'tk-header'},h('strong',null,title),navigation),
     h('div',{className:'tk-workspace'},
@@ -20,8 +25,8 @@ export function TriageWorkbench({title, navigation, toolbar, head, rows, selecti
           rows.length?rows.map(row=>h('div',{key:row.id,id:rowId(row.id),role:'option',
             className:'tk-row','aria-selected':selection.has(row.id),'data-current':row.id===current?'':undefined,
             onMouseDown:event=>{
-              // Ctrl/⌘-click belongs to the context menu or the browser; controls keep their clicks.
-              if(event.ctrlKey||event.metaKey||event.button!==0||event.target.closest('button,a,input,select,textarea,summary,[data-triage-ignore]'))return
+              // Ctrl/⌘-click belongs to the context menu or the browser.
+              if(event.ctrlKey||event.metaKey||event.button!==0)return
               onSelect(row.id,event.shiftKey);focusList()
             }},
             h('span',{className:'tk-cell tk-leading'},row.leading),
