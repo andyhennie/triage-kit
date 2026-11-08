@@ -10,7 +10,8 @@
  *
  * Rows are one line; cells hold text or inline elements and truncate. Every rule is
  * inside :where(), so it has zero specificity and any app selector wins. Restyle by
- * setting the variables below on .tk-list (or any ancestor) in the app's own CSS. */
+ * setting the variables below on .tk-list itself (e.g. `.ledger .tk-list`); the defaults
+ * are declared there, so values on an ancestor would not reach it. */
 
 :where(.tk-list) {
   --tk-row-height: 28px;

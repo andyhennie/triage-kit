@@ -86,6 +86,46 @@ but left to the caller in v0.1.
   `aria-selected`. Buttons show their key in `<kbd>` and carry
   `aria-keyshortcuts`.
 
+## Styling without a framework
+
+`triage-kit/list.css` styles the listbox markup above from any stack (server
+templates, plain JS, React). It is optional and has no JavaScript.
+
+```html
+<link rel="stylesheet" href="…/triage-kit/src/list.css">
+<div class="tk-list" role="listbox" aria-label="Inbox" aria-multiselectable="true"
+     tabindex="0" aria-activedescendant="row-42">
+  <div class="tk-row" id="row-42" role="option" aria-selected="true" data-current>
+    <span class="tk-cell">Sender</span>
+    <span class="tk-cell tk-grow">Subject</span>
+    <span class="tk-cell tk-num tk-muted">8. nov.</span>
+  </div>
+</div>
+```
+
+Rows are one line: each `.tk-cell` holds text or inline elements and
+truncates with an ellipsis (`<br>` is hidden). Every rule is inside `:where()`,
+so it has zero specificity and your own CSS wins whatever the load order. The
+look is a handful of variables; set them on `.tk-list` itself (an app selector such as `.ledger .tk-list`):
+
+| Variable | Default |
+|---|---|
+| `--tk-row-height` | `28px` (touch and narrow screens: at least 44 px) |
+| `--tk-row-pad-x` / `--tk-gap` | `12px` |
+| `--tk-columns` | `minmax(0, 20%) minmax(0, 1fr) fit-content(30%)` |
+| `--tk-font-size` | `13px` |
+| `--tk-accent` | `#2563eb` (cursor bar, focus ring) |
+| `--tk-selection` / `--tk-hover` | mixed from accent / text over canvas |
+| `--tk-canvas` / `--tk-text` / `--tk-muted` / `--tk-border` | system colours |
+
+```css
+.ledger .tk-list { --tk-row-height: 30px; --tk-columns: 90px 1fr 110px; --tk-accent: #15803d; }
+```
+
+`examples/plain.html` is a plain-JS list on the core functions; serve the repo
+root (`python3 -m http.server`) and open it. `?override=before|after` loads
+`examples/override.css` on either side of `list.css`.
+
 ## React
 
 ```js
