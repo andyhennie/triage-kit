@@ -31,13 +31,13 @@
 .questions .qs-help p { margin: 6px 0 0; }
 
 /* Rows grow with the question; one line when it fits. */
-.questions .tk-row { height: auto; min-height: 38px; padding-block: 5px; }
-.questions .qs-title { min-width: 0; font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; }
+.questions .tk-row { height: auto; min-height: 32px; padding-block: 3px; }
+.questions .qs-title { min-width: 0; line-height: 1.4; overflow-wrap: anywhere; }
 .questions .qs-title > span { display: block; }
-.questions .qs-note { font-size: 13px; }
+.questions .qs-note { font-size: 12px; }
 .questions .qs-tag { font-size: 12px; color: var(--qs-tone, var(--tk-muted, #71717a)); }
 .questions .qs-decisions { display: flex; gap: 4px; white-space: nowrap; }
-.questions .qs-decisions button { padding: 3px 9px; font-size: 13px; }
+.questions .qs-decisions button { padding: 2px 8px; font-size: 12px; }
 .questions .qs-decisions button:hover { background: var(--tk-hover, #f4f4f5); }
 .questions .qs-decisions button[data-marked] { outline: 2px solid var(--tk-accent, #1147bb); outline-offset: 1px; }
 .questions .qs-decisions button[aria-pressed="true"] { background: var(--qs-tone-bg, #f0f0f1); border-color: var(--qs-tone, currentColor); color: var(--qs-tone, inherit); font-weight: 600; }
