@@ -6,14 +6,13 @@
 <title>triage-kit · decision list</title>
 <!-- A checklist to decide on, row by row. Default: two decisions on ← and →.
      ?scale=5 shows the same list with five numbered decisions and a comment per row. -->
-<link rel="stylesheet" href="../src/workbench.css">
-<link rel="stylesheet" href="decide.css">
+<link rel="stylesheet" href="../src/decide.css">
 <style>body { margin: 0; }</style>
 </head>
 <body>
 <div id="app"></div>
 <script type="module">
-import {mountDecide} from './decide.js'
+import {mountDecide} from '../src/decide.js'
 
 const areas=['Orders','Field work','Templates','Access','Delivery']
 const texts=['One order can hold several reports','Work continues without a network connection','Templates are maintained centrally at launch',
@@ -29,8 +28,8 @@ mountDecide(document.getElementById('app'),five?{
     {id:'must',label:'Must have',keys:['1'],kbd:'1',tone:'ok'},
     {id:'should',label:'Should have',keys:['2'],kbd:'2',tone:'info'},
     {id:'later',label:'Can wait',keys:['3'],kbd:'3',tone:'muted'},
-    {id:'wrong',label:'Wrong',keys:['4'],kbd:'4',tone:'bad'},
-    {id:'unsure',label:'Unsure',keys:['5'],kbd:'5',tone:'warn'}],
+    {id:'wrong',label:'Wrong',keys:['4'],kbd:'4',tone:'bad',comment:true},
+    {id:'unsure',label:'Unsure',keys:['5'],kbd:'5',tone:'warn',comment:true}],
   help:{summary:'Keys',lines:['↑ ↓ move · ⇧↑ ⇧↓ extend · ⌘A all','1–5 answer the selection · U undo','↵ comment · Esc back · Ctrl+← Ctrl+→ queue']},
 }:{
   title:'What goes to the reviewer?',storageKey:'triage-kit-decide',items,

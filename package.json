@@ -18,7 +18,12 @@
       "types": "./src/workbench.d.ts",
       "import": "./src/workbench.js"
     },
-    "./workbench.css": "./src/workbench.css"
+    "./workbench.css": "./src/workbench.css",
+    "./decide": {
+      "types": "./src/decide.d.ts",
+      "import": "./src/decide.js"
+    },
+    "./decide.css": "./src/decide.css"
   },
   "files": [
     "src",

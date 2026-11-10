@@ -1,4 +1,4 @@
-// The decision-list example in a DOM: a key is one batch for the selection, decided rows
+// mountDecide in a DOM: a key is one batch for the selection, decided rows
 // leave the open queue and hand the cursor on, U restores, and state survives a remount.
 import {test, before, after} from 'node:test'
 import assert from 'node:assert/strict'
@@ -10,7 +10,7 @@ let mountDecide
 before(async()=>{
   for(const key of ['window','document','navigator','HTMLElement','Node','Event','KeyboardEvent','MouseEvent'])
     Object.defineProperty(globalThis,key,{value:key==='window'?window:window[key],configurable:true,writable:true})
-  ;({mountDecide}=await import('../examples/decide.js'))
+  ;({mountDecide}=await import('../src/decide.js'))
 })
 after(()=>window.happyDOM.close())
 
@@ -19,7 +19,8 @@ function mount(storage=memory()){
   document.body.replaceChildren(root)
   const api=mountDecide(root,{title:'Queue',storageKey:'t',storage,comment:true,
     items:['a','b','c','d'].map(id=>({id,title:`Row ${id}`})),
-    decisions:[{id:'send',label:'Send',keys:['ArrowRight'],kbd:'→'},{id:'skip',label:'Skip',keys:['ArrowLeft'],kbd:'←'}]})
+    decisions:[{id:'send',label:'Send',keys:['ArrowRight'],kbd:'→'},{id:'skip',label:'Skip',keys:['ArrowLeft'],kbd:'←'},
+      {id:'wrong',label:'Wrong',keys:['4'],kbd:'4',comment:true}]})
   const list=root.querySelector('.tk-list')
   const press=(key,init={},target=list)=>target.dispatchEvent(new KeyboardEvent('keydown',{key,bubbles:true,cancelable:true,...init}))
   const shown=()=>[...root.querySelectorAll('.tk-row')].map(row=>row.dataset.id)
@@ -69,4 +70,20 @@ test('Ctrl+arrows step the queue tabs and decisions survive a remount',()=>{
   assert.deepEqual(again.shown(),['b','c','d'])
   again.press('u')
   assert.deepEqual(again.api.decisions,{})
+})
+
+test('a decision that asks for a comment keeps its row in the inspector until Esc',()=>{
+  const {root,api,list,press,shown}=mount()
+  press('4')
+  assert.deepEqual(shown(),['b','c','d'])
+  const note=root.querySelector('.dc-comment')
+  assert.equal(document.activeElement,note)
+  assert.equal(root.querySelector('.tk-inspector h1').textContent,'Row a')
+  note.value='not like that'
+  note.dispatchEvent(new Event('input',{bubbles:true}))
+  assert.deepEqual(api.comments,{a:'not like that'})
+  press('Escape',{},note)
+  assert.equal(document.activeElement,list)
+  assert.equal(root.querySelector('.tk-inspector h1').textContent,'Row b')
+  assert.deepEqual(api.rows()[0],{id:'a',title:'Row a',decision:'wrong',comment:'not like that'})
 })

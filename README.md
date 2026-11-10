@@ -139,14 +139,47 @@ React: `?look=mail` and `?look=ledger` (`examples/look-*.css`). Serve the repo
 root (`python3 -m http.server`) and open it. `?override=before|after` loads
 `examples/override.css` on either side of `list.css`.
 
-`examples/decide.html` is a third composition, a decision list: queue tabs, one
-key per decision applied to the selection as one batch, U to undo, and an
-inspector for the row under the cursor (`examples/decide.js`, `decide.css`,
-without React). The default has two decisions on ← and →; `?scale=5` has five
-numbered decisions and a comment per row. Items, decisions, keys and labels are
-one config object and decisions are kept in `localStorage`. It is an example to
-iterate on, not yet part of the package API; a page that wants it bundles
-`examples/decide.js` and vendors the result.
+## Decision list
+
+`triage-kit/decide` is a ready list for lines of text that each need a
+decision: questions, assumptions, review findings. It has no framework and no
+dependencies, and mounts from one config object.
+
+```js
+import {mountDecide} from 'triage-kit/decide'
+import 'triage-kit/decide.css'          // or <link>; it imports workbench.css and list.css
+
+const api = mountDecide(document.getElementById('app'), {
+  title: 'Do the assumptions hold?', storageKey: 'assumptions-v1', comment: true,
+  items: [{id: '1', leading: '1', title: 'One order can hold several reports', group: 'Orders', tag: 'Open', tone: 'info'}],
+  decisions: [
+    {id: 'yes',   label: 'Yes',   keys: ['1'], kbd: '1', tone: 'ok'},
+    {id: 'wrong', label: 'Wrong', keys: ['2'], kbd: '2', tone: 'bad', comment: true},
+  ],
+  actions: [{label: 'Export', run: api => download(api.rows())}],
+})
+```
+
+- **Queues** are tabs with counts: "to decide", one per decision, and all.
+  Ctrl+← / Ctrl+→ step them.
+- **A decision key** applies to every selected row as one batch (↑ ↓, ⇧↑ ⇧↓ and
+  ⌘A select). Decided rows leave "to decide", so the cursor moves on. U undoes
+  the latest batch, one per press.
+- **The inspector** shows the full text of the cursor row, the decision buttons
+  with their keys, and the comment when `comment` is on (Enter focuses it, Esc
+  returns). A decision with `comment: true` keeps its row in the inspector and
+  focuses the comment, so "wrong" can be explained at once.
+- **State** (decisions, comments, undo history) is kept under `storageKey` in
+  `localStorage`, or in the `storage` you pass. `api.rows()` returns every item
+  with its decision and comment for export.
+- **Look**: the `--tk-*` variables, `--tk-columns` for the five cells (leading,
+  title, group, tag, decision) and the `--dc-*` tone colours. `labels` replaces
+  every built-in string.
+
+`examples/decide.html` shows a two-decision list on ← and →, and with
+`?scale=5` five numbered answers with comments. A static page without a
+bundler vendors one file: `bun build src/decide.js --format esm`, plus the
+three stylesheets concatenated.
 
 ## React
 

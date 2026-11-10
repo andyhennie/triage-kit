@@ -1,5 +1,8 @@
-/* The decision-list composition (examples/decide.js): columns, queue tabs, decision tones
-   and the inspector. Layout and rows come from workbench.css and list.css. */
+/* Styles for mountDecide (decide.js): columns, queue tabs, decision tones and the
+   inspector. Layout and rows come from workbench.css and list.css. Restyle with the --tk-*
+   variables, --tk-columns for the five cells, and the --dc-* tone colours below. */
+@import "./workbench.css";
+
 .decide {
   --tk-columns: 32px minmax(0, 1fr) 150px 84px 96px;
   --dc-ok: #2f7a4d; --dc-ok-bg: #e3f1e8;
