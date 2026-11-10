@@ -1,0 +1,54 @@
+/* Styles for mountQuestions (questions.js). Page frame and row colours come from
+   workbench.css and list.css; here rows grow with their text and carry the answer buttons.
+   Restyle with the --tk-* variables, --qs-columns for the cells before the buttons, and the
+   --qs-* tone colours. Rows are listbox options; their buttons are pointer shortcuts for
+   the keys and are not tab stops. */
+@import "./workbench.css";
+
+.questions {
+  --tk-columns: var(--qs-columns, 32px minmax(0, 1fr) 150px 84px) var(--qs-decisions-width, max-content);
+  --qs-ok: #2f7a4d; --qs-ok-bg: #e3f1e8;
+  --qs-info: #35608a; --qs-info-bg: #e2ecf5;
+  --qs-warn: #76601e; --qs-warn-bg: #f3ecd3;
+  --qs-bad: #a8402f; --qs-bad-bg: #f8e5e1;
+  --qs-muted: #71717a; --qs-muted-bg: #f0f0f1;
+}
+.questions [data-tone="ok"] { --qs-tone: var(--qs-ok); --qs-tone-bg: var(--qs-ok-bg); }
+.questions [data-tone="info"] { --qs-tone: var(--qs-info); --qs-tone-bg: var(--qs-info-bg); }
+.questions [data-tone="warn"] { --qs-tone: var(--qs-warn); --qs-tone-bg: var(--qs-warn-bg); }
+.questions [data-tone="bad"] { --qs-tone: var(--qs-bad); --qs-tone-bg: var(--qs-bad-bg); }
+.questions [data-tone="muted"] { --qs-tone: var(--qs-muted); --qs-tone-bg: var(--qs-muted-bg); }
+
+.questions > .tk-list { flex: 1; }
+.questions .tk-header nav button { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.questions .tk-header nav button[aria-pressed="true"] { border-color: currentColor; font-weight: 600; }
+.questions .qs-count { color: var(--tk-muted, #71717a); font-size: 12px; font-variant-numeric: tabular-nums; }
+.questions .tk-toolbar { justify-content: space-between; align-items: flex-start; }
+.questions .tk-toolbar .tk-actions { margin-left: auto; }
+.questions button { cursor: pointer; }
+.questions .qs-help { color: var(--tk-muted, #71717a); font-size: 13px; padding-top: 5px; }
+.questions .qs-help summary { cursor: pointer; width: max-content; }
+.questions .qs-help p { margin: 6px 0 0; }
+
+/* Rows grow with the question; one line when it fits. */
+.questions .tk-row { height: auto; min-height: 38px; padding-block: 5px; }
+.questions .qs-title { min-width: 0; font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; }
+.questions .qs-title > span { display: block; }
+.questions .qs-note { font-size: 13px; }
+.questions .qs-tag { font-size: 12px; color: var(--qs-tone, var(--tk-muted, #71717a)); }
+.questions .qs-decisions { display: flex; gap: 4px; white-space: nowrap; }
+.questions .qs-decisions button { padding: 3px 9px; font-size: 13px; }
+.questions .qs-decisions button:hover { background: var(--tk-hover, #f4f4f5); }
+.questions .qs-decisions button[aria-pressed="true"] { background: var(--qs-tone-bg, #f0f0f1); border-color: var(--qs-tone, currentColor); color: var(--qs-tone, inherit); font-weight: 600; }
+/* Key hints only on the cursor row; hidden ones keep their width so the column stays aligned. */
+.questions .tk-row:not([data-current]) .qs-decisions kbd { visibility: hidden; }
+.questions .qs-comment { display: block; width: 100%; margin-top: 6px; font: inherit; font-size: 13px; color: inherit; background: var(--tk-canvas, #fff); border: 1px solid var(--border, #e4e4e7); border-radius: 7px; padding: 6px 9px; resize: vertical; user-select: text; }
+.questions :is(button, textarea, summary):focus-visible { outline: 2px solid var(--tk-accent, #1147bb); outline-offset: 1px; }
+
+/* Narrow: number and question on the first line, the buttons under the question. */
+@media (max-width: 900px) {
+  .questions .tk-head, .questions .qs-group, .questions .qs-tag { display: none; }
+  .questions .tk-row { grid-template-columns: 28px minmax(0, 1fr); row-gap: 6px; padding-block: 8px; }
+  .questions .qs-decisions { grid-column: 2; flex-wrap: wrap; }
+  .questions .qs-decisions kbd { display: none; }
+}

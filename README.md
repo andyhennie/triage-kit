@@ -139,17 +139,18 @@ React: `?look=mail` and `?look=ledger` (`examples/look-*.css`). Serve the repo
 root (`python3 -m http.server`) and open it. `?override=before|after` loads
 `examples/override.css` on either side of `list.css`.
 
-## Decision list
+## Questions
 
-`triage-kit/decide` is a ready list for lines of text that each need a
-decision: questions, assumptions, review findings. It has no framework and no
+`triage-kit/questions` is a ready list for lines of text that each need an
+answer: questions, assumptions, review findings. The whole text and the answer
+buttons are in the row; there is no inspector. It has no framework and no
 dependencies, and mounts from one config object.
 
 ```js
-import {mountDecide} from 'triage-kit/decide'
-import 'triage-kit/decide.css'          // or <link>; it imports workbench.css and list.css
+import {mountQuestions} from 'triage-kit/questions'
+import 'triage-kit/questions.css'       // or <link>; it imports workbench.css and list.css
 
-const api = mountDecide(document.getElementById('app'), {
+const api = mountQuestions(document.getElementById('app'), {
   title: 'Do the assumptions hold?', storageKey: 'assumptions-v1', comment: true,
   items: [{id: '1', leading: '1', title: 'One order can hold several reports', group: 'Orders', tag: 'Open', tone: 'info'}],
   decisions: [
@@ -160,25 +161,28 @@ const api = mountDecide(document.getElementById('app'), {
 })
 ```
 
-- **Queues** are tabs with counts: "to decide", one per decision, and all.
+- **Rows** grow with their text, so a question is never cut off. Each row has
+  one button per answer; the cursor row shows their keys. The buttons are
+  pointer shortcuts and not tab stops: the list stays one listbox.
+- **Queues** are tabs with counts: "to decide", one per answer, and all.
   Ctrl+← / Ctrl+→ step them.
-- **A decision key** applies to every selected row as one batch (↑ ↓, ⇧↑ ⇧↓ and
-  ⌘A select). Decided rows leave "to decide", so the cursor moves on. U undoes
+- **An answer key** applies to every selected row as one batch (↑ ↓, ⇧↑ ⇧↓ and
+  ⌘A select). Answered rows leave "to decide", so the cursor moves on. U undoes
   the latest batch, one per press.
-- **The inspector** shows the full text of the cursor row, the decision buttons
-  with their keys, and the comment when `comment` is on (Enter focuses it, Esc
-  returns). A decision with `comment: true` keeps its row in the inspector and
-  focuses the comment, so "wrong" can be explained at once.
-- **State** (decisions, comments, undo history) is kept under `storageKey` in
+- **Comments** (`comment: true`): Enter opens the comment in the cursor row,
+  Esc returns to the list. An answer with `comment: true` keeps its row in
+  place with the comment open, so "wrong" can be explained at once. A saved
+  comment shows under its question.
+- **State** (answers, comments, undo history) is kept under `storageKey` in
   `localStorage`, or in the `storage` you pass. `api.rows()` returns every item
-  with its decision and comment for export.
-- **Look**: the `--tk-*` variables, `--tk-columns` for the five cells (leading,
-  title, group, tag, decision) and the `--dc-*` tone colours. `labels` replaces
-  every built-in string.
+  with its answer and comment for export.
+- **Look**: the `--tk-*` variables, `--qs-columns` for the four cells before
+  the buttons and the `--qs-*` tone colours. `labels` replaces every built-in
+  string; `help` is shown closed, behind a click.
 
-`examples/decide.html` shows a two-decision list on ← and →, and with
+`examples/questions.html` shows a two-answer list on ← and →, and with
 `?scale=5` five numbered answers with comments. A static page without a
-bundler vendors one file: `bun build src/decide.js --format esm`, plus the
+bundler vendors one file: `bun build src/questions.js --format esm`, plus the
 three stylesheets concatenated.
 
 ## React

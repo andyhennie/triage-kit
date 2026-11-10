@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>triage-kit · decision list</title>
-<!-- A checklist to decide on, row by row. Default: two decisions on ← and →.
+<title>triage-kit · questions</title>
+<!-- Lines of text to answer, row by row, with the answer buttons in the row. Default: two decisions on ← and →.
      ?scale=5 shows the same list with five numbered decisions and a comment per row. -->
-<link rel="stylesheet" href="../src/decide.css">
+<link rel="stylesheet" href="../src/questions.css">
 <style>body { margin: 0; }</style>
 </head>
 <body>
 <div id="app"></div>
 <script type="module">
-import {mountDecide} from '../src/decide.js'
+import {mountQuestions} from '../src/questions.js'
 
 const areas=['Orders','Field work','Templates','Access','Delivery']
 const texts=['One order can hold several reports','Work continues without a network connection','Templates are maintained centrally at launch',
@@ -21,8 +21,8 @@ const items=Array.from({length:30},(_,i)=>({id:`a${i+1}`,leading:String(i+1),tit
   tag:['Settled','Assumption','Open'][i%3],tone:['ok','warn','info'][i%3]}))
 const five=new URLSearchParams(location.search).get('scale')==='5'
 
-mountDecide(document.getElementById('app'),five?{
-  title:'Do the assumptions hold?',storageKey:'triage-kit-decide-scale',items,comment:true,
+mountQuestions(document.getElementById('app'),five?{
+  title:'Do the assumptions hold?',storageKey:'triage-kit-questions-scale',items,comment:true,
   columns:['','Assumption','Area','Status','Answer'],
   decisions:[
     {id:'must',label:'Must have',keys:['1'],kbd:'1',tone:'ok'},
@@ -32,7 +32,7 @@ mountDecide(document.getElementById('app'),five?{
     {id:'unsure',label:'Unsure',keys:['5'],kbd:'5',tone:'warn',comment:true}],
   help:{summary:'Keys',lines:['↑ ↓ move · ⇧↑ ⇧↓ extend · ⌘A all','1–5 answer the selection · U undo','↵ comment · Esc back · Ctrl+← Ctrl+→ queue']},
 }:{
-  title:'What goes to the reviewer?',storageKey:'triage-kit-decide',items,
+  title:'What goes to the reviewer?',storageKey:'triage-kit-questions',items,
   columns:['','Assumption','Area','Status','Choice'],
   decisions:[
     {id:'send',label:'Send',keys:['ArrowRight'],kbd:'→',tone:'ok'},

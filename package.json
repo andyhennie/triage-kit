@@ -19,11 +19,11 @@
       "import": "./src/workbench.js"
     },
     "./workbench.css": "./src/workbench.css",
-    "./decide": {
-      "types": "./src/decide.d.ts",
-      "import": "./src/decide.js"
+    "./questions": {
+      "types": "./src/questions.d.ts",
+      "import": "./src/questions.js"
     },
-    "./decide.css": "./src/decide.css"
+    "./questions.css": "./src/questions.css"
   },
   "files": [
     "src",
