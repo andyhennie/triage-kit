@@ -43,15 +43,17 @@ export function mountQuestions(root,config){
     {id:'all',label:L.all,has:()=>true}]
   // editing: the row whose comment is open. It stays in the list until the comment is left,
   // even when its answer has moved it out of this queue.
-  // option: the answer button ← → has moved to on the cursor row, as {id, index}; Enter applies it.
-  let queue='open',status='',editing=null,option=null
+  // The cursor row always has one answer button marked, and Enter applies it. option is where
+  // ← → last put the mark, as {id, index}; column is that index, carried to the next rows.
+  let queue='open',status='',editing=null,option=null,column=0
   const ids=()=>{const has=queues.find(q=>q.id===queue).has;return items.filter(item=>has(item)||item.id===editing).map(item=>item.id)}
   let sel=reconcile(noSelection,ids())
 
-  // ← → walk the answer buttons of the cursor row and Space applies; an app cannot rebind them.
+  // ← → walk the answer buttons of the cursor row, Enter and Space apply, C opens the
+  // comment; an app cannot rebind them.
   const keys={}
   for(const d of decisions)for(const key of d.keys??[])keys[key]=`decide:${d.id}`
-  Object.assign(keys,{ArrowLeft:'option:-1',ArrowRight:'option:1',' ':'apply'})
+  Object.assign(keys,{ArrowLeft:'option:-1',ArrowRight:'option:1',' ':'apply',c:'comment',C:'comment'})
 
   const tabs=h('nav',{'aria-label':'Queues'}),toolbar=h('div',{class:'tk-toolbar'})
   const list=h('div',{class:'tk-list',role:'listbox',tabindex:'0','aria-label':L.list,'aria-multiselectable':'true'})
@@ -101,13 +103,19 @@ export function mountQuestions(root,config){
     changed()
   }
   function changed(){save();onChange?.(api)}
-  const marked=()=>option&&option.id===sel.current?decisions[option.index]:null
-  // Start from the row's own answer when it has one, else from the near end.
+  // Where the mark is on the cursor row: where ← → put it, else the row's own answer, else
+  // the column it was in on the previous row.
+  function markedIndex(){
+    if(sel.current==null)return -1
+    if(option?.id===sel.current)return option.index
+    const own=decisions.findIndex(d=>d.id===data.d[sel.current])
+    return own<0?column:own
+  }
+  const marked=()=>decisions[markedIndex()]??null
   function stepOption(delta){
     if(sel.current==null)return
-    const at=marked()?option.index:decisions.findIndex(d=>d.id===data.d[sel.current])
-    const index=at<0?(delta>0?0:decisions.length-1):Math.max(0,Math.min(decisions.length-1,at+delta))
-    option={id:sel.current,index}
+    column=Math.max(0,Math.min(decisions.length-1,markedIndex()+delta))
+    option={id:sel.current,index:column}
   }
   const focusAfter=()=>(editing==null?list:list.querySelector('.qs-comment')??list).focus()
 
@@ -146,7 +154,7 @@ export function mountQuestions(root,config){
   }
 
   page.addEventListener('keydown',e=>{
-    const route=routeKey(e,{queues:true,keys,open:false,enter:'comment'})
+    const route=routeKey(e,{queues:true,keys,open:false,enter:'apply'})
     if(!route)return
     e.preventDefault()
     if(e.repeat&&!route.repeat)return
@@ -155,10 +163,10 @@ export function mountQuestions(root,config){
     else if(route.action==='queue'){const at=queues.findIndex(q=>q.id===queue);setQueue(queues[Math.max(0,Math.min(queues.length-1,at+route.arg))].id)}
     else if(route.action==='undo')undo()
     else if(route.action.startsWith('option:'))stepOption(Number(route.action.slice(7)))
-    else if(route.action==='apply'||(route.action==='comment'&&marked())){const d=marked();if(d)decide(d.id)}
+    else if(route.action==='apply'){const d=marked();if(d)decide(d.id)}
     else if(route.action==='comment'){if(comment&&sel.current!=null){sel=selectOne(sel,sel.current);editing=sel.current}}
     else decide(route.action.slice('decide:'.length))
-    if(!marked())option=null
+    if(option?.id!==sel.current)option=null
     render()
     focusAfter()
   })

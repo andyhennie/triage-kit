@@ -166,12 +166,14 @@ const api = mountQuestions(document.getElementById('app'), {
   pointer shortcuts and not tab stops: the list stays one listbox.
 - **Queues** are tabs with counts: "to decide", one per answer, and all.
   Ctrl+← / Ctrl+→ step them.
-- **← →** walk the answer buttons of the cursor row, and Enter or Space
-  applies the marked one, so a list can be answered with the arrows alone.
+- **One answer button is always marked** on the cursor row. ← → move the mark
+  and Enter or Space applies it. The mark starts on the row's own answer, else
+  in the column it had on the previous row, so a run of the same answer is
+  Enter, Enter, Enter.
 - **An answer key** applies to every selected row as one batch (↑ ↓, ⇧↑ ⇧↓ and
   ⌘A select). Answered rows leave "to decide", so the cursor moves on. U undoes
   the latest batch, one per press.
-- **Comments** (`comment: true`): Enter, with no button marked, opens the comment in the cursor row,
+- **Comments** (`comment: true`): C opens the comment in the cursor row,
   Esc returns to the list. An answer with `comment: true` keeps its row in
   place with the comment open, so "wrong" can be explained at once. A saved
   comment shows under its question.

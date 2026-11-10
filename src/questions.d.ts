@@ -10,7 +10,7 @@ export type QuestionItem<T extends Id = string> = {
 export type QuestionDecision = {
   id:string; label:string
   /** Tooltip and export wording when it differs from the label. */ long?:string
-  /** `KeyboardEvent.key` values, e.g. `['1']` or `['s']`. Reserved: ↑ ↓ ← → Space Enter U, Ctrl+arrows. */
+  /** `KeyboardEvent.key` values, e.g. `['1']` or `['s']`. Reserved: ↑ ↓ ← → Space Enter C U, Ctrl+arrows. */
   keys?:string[]
   /** What the button shows for the key, e.g. `'1'`. */ kbd?:string
   tone?:QuestionTone
@@ -33,7 +33,7 @@ export type QuestionsConfig<T extends Id = string> = {
   title:string; items:QuestionItem<T>[]; decisions:QuestionDecision[]
   /** Key for decisions, comments and undo history in `storage`. */ storageKey:string
   /** Default `localStorage`; `null` keeps state in memory only. */ storage?:Pick<Storage,'getItem'|'setItem'>|null
-  /** A free-text comment per item: Enter opens it in the row, Esc returns to the list. */ comment?:boolean
+  /** A free-text comment per item: C opens it in the row, Esc returns to the list. */ comment?:boolean
   /** Five header labels for leading, title, group, tag and the answer buttons. */ columns?:string[]
   /** App buttons in the toolbar. */ actions?:{label:string; run(api:QuestionsApi<T>):void}[]
   /** Help text, closed until clicked. */ help?:{summary:string; lines:string[]}

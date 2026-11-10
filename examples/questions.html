@@ -30,7 +30,7 @@ mountQuestions(document.getElementById('app'),five?{
     {id:'later',label:'Can wait',keys:['3'],kbd:'3',tone:'muted'},
     {id:'wrong',label:'Wrong',keys:['4'],kbd:'4',tone:'bad',comment:true},
     {id:'unsure',label:'Unsure',keys:['5'],kbd:'5',tone:'warn',comment:true}],
-  help:{summary:'Keys',lines:['↑ ↓ move · ⇧↑ ⇧↓ extend · ⌘A all','1–5 answer the selection · or ← → then ↵ · U undo','↵ comment · Esc back · Ctrl+← Ctrl+→ queue']},
+  help:{summary:'Keys',lines:['↑ ↓ move · ⇧↑ ⇧↓ extend · ⌘A all','← → choose · ↵ apply · 1–5 answer directly · U undo','C comment · Esc back · Ctrl+← Ctrl+→ queue']},
 }:{
   title:'What goes to the reviewer?',storageKey:'triage-kit-questions',items,
   columns:['','Assumption','Area','Status','Choice'],
@@ -38,7 +38,7 @@ mountQuestions(document.getElementById('app'),five?{
     {id:'send',label:'Send',keys:['1'],kbd:'1',tone:'ok'},
     {id:'skip',label:'Leave out',keys:['2'],kbd:'2',tone:'muted'}],
   actions:[{label:'Copy the chosen ids',run:api=>api.toast(Object.entries(api.decisions).filter(([,d])=>d==='send').map(([id])=>id).join(', ')||'Nothing chosen yet')}],
-  help:{summary:'Keys',lines:['↑ ↓ move · ⇧↑ ⇧↓ extend · ⌘A all','1 send · 2 leave out · or ← → then ↵ · U undo','Ctrl+← Ctrl+→ queue']},
+  help:{summary:'Keys',lines:['↑ ↓ move · ⇧↑ ⇧↓ extend · ⌘A all','← → choose · ↵ apply · 1 send · 2 leave out · U undo','Ctrl+← Ctrl+→ queue']},
 })
 </script>
 </body>
