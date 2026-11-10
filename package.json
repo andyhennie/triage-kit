@@ -23,7 +23,11 @@
       "types": "./src/questions.d.ts",
       "import": "./src/questions.js"
     },
-    "./questions.css": "./src/questions.css"
+    "./questions.css": "./src/questions.css",
+    "./columns": {
+      "types": "./src/columns.d.ts",
+      "import": "./src/columns.js"
+    }
   },
   "files": [
     "src",

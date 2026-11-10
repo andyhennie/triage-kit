@@ -5,6 +5,7 @@
 // undoes. Everything an app changes is in the config (see questions.d.ts); state lives in
 // storage.
 import {reconcile,selectOne,selectRange,applyListKey,afterAction,routeKey,batchFor,undoOf,HISTORY_LIMIT} from './index.js'
+import {mountColumnResize,columnTemplate} from './columns.js'
 
 function h(tag,props={},...kids){
   const node=document.createElement(tag)
@@ -25,8 +26,10 @@ const noSelection={selection:new Set(),current:null,selectionAnchor:null}
 export function mountQuestions(root,config){
   const {title,items,decisions,storageKey,comment=false,actions=[],help,onChange}=config
   const columns=config.columns??['','Question','Group','Status','Answer']
+  // The four cells before the answer buttons; null is the question, which takes the rest.
+  const columnWidths=config.columnWidths??[32,null,150,84]
   const L={open:'To decide',all:'All',list:'Questions',empty:'Nothing here',comment:'Comment',
-    undo:'Undo',undone:'Undone',nothingToUndo:'Nothing to undo',unchanged:'No change',
+    resize:'Drag to resize, double-click to reset',undo:'Undo',undone:'Undone',nothingToUndo:'Nothing to undo',unchanged:'No change',
     selected:(n,total)=>`${n} selected · ${total}`,...config.labels}
   let storage=config.storage
   if(storage===undefined)try{storage=globalThis.localStorage}catch{storage=null}
@@ -59,10 +62,11 @@ export function mountQuestions(root,config){
   const list=h('div',{class:'tk-list',role:'listbox',tabindex:'0','aria-label':L.list,'aria-multiselectable':'true'})
   const count=h('span'),statusLine=h('div',{class:'tk-status',role:'status','aria-live':'polite','aria-atomic':'true'})
   const undoButton=h('button',{type:'button',title:'U','aria-keyshortcuts':'u',onclick:()=>{undo();render();list.focus()}},L.undo,h('kbd',{text:'U'}))
+  const head=h('div',{class:'tk-head','aria-hidden':'true'},columns.map(text=>h('span',{text})))
   const page=h('main',{class:'triage-kit-workbench questions'},
     h('header',{class:'tk-header'},h('strong',{text:title}),tabs),
     toolbar,
-    h('div',{class:'tk-head','aria-hidden':'true'},columns.map(text=>h('span',{text}))),
+    head,
     list,
     h('footer',{class:'tk-footer'},count,h('div',{class:'tk-actions'},undoButton)),
     statusLine)
@@ -188,6 +192,10 @@ export function mountQuestions(root,config){
     toast(text){status=text;statusLine.textContent=text},
     reset(){data={d:{},c:{},h:[]};setQueue('open');status='';changed();render()},
   }
+  // Header handles drag the column widths; they are kept per list next to its answers.
+  const setColumns=template=>page.style.setProperty('--qs-columns',template)
+  if(config.resizable===false)setColumns(columnTemplate(columnWidths))
+  else mountColumnResize(head,{widths:columnWidths,storage,storageKey:`${storageKey}:columns`,apply:setColumns,label:L.resize})
   root.replaceChildren(page)
   render()
   list.focus()

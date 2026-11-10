@@ -84,6 +84,12 @@
 :where(.tk-muted) { color: var(--tk-muted, var(--muted-foreground, #71717a)); }
 :where(.tk-num) { text-align: right; font-variant-numeric: tabular-nums; }
 
+/* Optional column resize (columns.js): a handle on the right edge of a header cell. */
+:where(.tk-head > *) { position: relative; }
+:where(.tk-resize) { box-sizing: border-box; position: absolute; top: 0; bottom: 0; right: 0; width: 9px; border-right: 1px solid var(--border, #e4e4e7); cursor: col-resize; touch-action: none; }
+:where(.tk-resize:hover, .tk-head[data-resizing] .tk-resize) { border-right: 2px solid var(--tk-accent, var(--selection-edge, #1147bb)); }
+:where(.tk-head[data-resizing]) { cursor: col-resize; user-select: none; }
+
 /* Touch and narrow screens: a 44 px row target, even when the app sets a smaller height. */
 @media (pointer: coarse), (max-width: 700px) {
   :where(.tk-row) { height: auto; min-height: max(44px, var(--tk-row-height, 28px)); }

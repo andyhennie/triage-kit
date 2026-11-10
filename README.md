@@ -180,14 +180,39 @@ const api = mountQuestions(document.getElementById('app'), {
 - **State** (answers, comments, undo history) is kept under `storageKey` in
   `localStorage`, or in the `storage` you pass. `api.rows()` returns every item
   with its answer and comment for export.
-- **Look**: the `--tk-*` variables, `--qs-columns` for the four cells before
-  the buttons and the `--qs-*` tone colours. `labels` replaces every built-in
-  string; `help` is shown closed, behind a click.
+- **Column widths**: `columnWidths` gives the default px widths of the four
+  cells before the buttons (`null` is the question, which takes the rest). The
+  user drags the header edges to change them and double-clicks to reset; the
+  widths are saved next to the answers. `resizable: false` turns it off.
+- **Look**: the `--tk-*` variables and the `--qs-*` tone colours. `labels`
+  replaces every built-in string; `help` is shown closed, behind a click.
 
 `examples/questions.html` shows a two-answer list on 1 and 2, and with
 `?scale=5` five numbered answers with comments. A static page without a
 bundler vendors one file: `bun build src/questions.js --format esm`, plus the
 three stylesheets concatenated.
+
+## Column widths
+
+`triage-kit/columns` lets the user drag column widths on any list that uses
+the `list.css` grid. Widths are an array in column order: a number is a fixed
+px width, `null` a flexible column.
+
+```js
+import {mountColumnResize} from 'triage-kit/columns'
+
+mountColumnResize(document.querySelector('.tk-head'), {
+  widths: [240, null, 84], storage: localStorage, storageKey: 'inbox:columns',
+  apply: template => page.style.setProperty('--tk-columns', template),
+})
+```
+
+Each header cell with a resizable boundary gets a handle on its right edge. A
+fixed column grows with its handle; the handle of a flexible column shrinks
+the fixed column after it. Widths are saved when a drag ends, and a
+double-click restores the defaults. `resizeColumn`, `columnTemplate` and
+`readWidths` are the pure parts, for a framework that draws its own handles.
+The handles are pointer-only.
 
 ## React
 

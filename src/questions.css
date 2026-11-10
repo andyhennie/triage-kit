@@ -1,7 +1,7 @@
 /* Styles for mountQuestions (questions.js). Page frame and row colours come from
    workbench.css and list.css; here rows grow with their text and carry the answer buttons.
-   Restyle with the --tk-* variables, --qs-columns for the cells before the buttons, and the
-   --qs-* tone colours. Rows are listbox options; their buttons are pointer shortcuts for
+   Restyle with the --tk-* variables and the --qs-* tone colours; column widths come from
+   the config (columnWidths) and the user's own dragging. Rows are listbox options; their buttons are pointer shortcuts for
    the keys and are not tab stops. */
 @import "./workbench.css";
 
