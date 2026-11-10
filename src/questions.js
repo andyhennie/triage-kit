@@ -43,12 +43,15 @@ export function mountQuestions(root,config){
     {id:'all',label:L.all,has:()=>true}]
   // editing: the row whose comment is open. It stays in the list until the comment is left,
   // even when its answer has moved it out of this queue.
-  let queue='open',status='',editing=null
+  // option: the answer button ← → has moved to on the cursor row, as {id, index}; Enter applies it.
+  let queue='open',status='',editing=null,option=null
   const ids=()=>{const has=queues.find(q=>q.id===queue).has;return items.filter(item=>has(item)||item.id===editing).map(item=>item.id)}
   let sel=reconcile(noSelection,ids())
 
+  // ← → walk the answer buttons of the cursor row and Space applies; an app cannot rebind them.
   const keys={}
   for(const d of decisions)for(const key of d.keys??[])keys[key]=`decide:${d.id}`
+  Object.assign(keys,{ArrowLeft:'option:-1',ArrowRight:'option:1',' ':'apply'})
 
   const tabs=h('nav',{'aria-label':'Queues'}),toolbar=h('div',{class:'tk-toolbar'})
   const list=h('div',{class:'tk-list',role:'listbox',tabindex:'0','aria-label':L.list,'aria-multiselectable':'true'})
@@ -98,6 +101,14 @@ export function mountQuestions(root,config){
     changed()
   }
   function changed(){save();onChange?.(api)}
+  const marked=()=>option&&option.id===sel.current?decisions[option.index]:null
+  // Start from the row's own answer when it has one, else from the near end.
+  function stepOption(delta){
+    if(sel.current==null)return
+    const at=marked()?option.index:decisions.findIndex(d=>d.id===data.d[sel.current])
+    const index=at<0?(delta>0?0:decisions.length-1):Math.max(0,Math.min(decisions.length-1,at+delta))
+    option={id:sel.current,index}
+  }
   const focusAfter=()=>(editing==null?list:list.querySelector('.qs-comment')??list).focus()
 
   function row(id){
@@ -105,7 +116,7 @@ export function mountQuestions(root,config){
     // The buttons repeat the keys for the pointer; they stay out of the tab order so the
     // listbox keeps one tab stop.
     const buttons=h('span',{class:'qs-decisions'},decisions.map(d=>h('button',{type:'button',tabindex:'-1',title:d.long??d.label,
-      'data-tone':d.tone,'aria-pressed':String(data.d[id]===d.id),
+      'data-tone':d.tone,'aria-pressed':String(data.d[id]===d.id),'data-marked':id===sel.current&&marked()===d,
       onclick:()=>{stopEditing();if(!sel.selection.has(id))sel=selectOne(sel,id);decide(d.id);render();focusAfter()}},
       d.label,d.kbd&&h('kbd',{text:d.kbd}))))
     const field=comment&&editing===id?h('textarea',{class:'qs-comment',rows:'2',placeholder:L.comment,'aria-label':L.comment,
@@ -135,7 +146,7 @@ export function mountQuestions(root,config){
   }
 
   page.addEventListener('keydown',e=>{
-    const route=routeKey(e,{queues:true,keys,open:false,enter:comment?'comment':null})
+    const route=routeKey(e,{queues:true,keys,open:false,enter:'comment'})
     if(!route)return
     e.preventDefault()
     if(e.repeat&&!route.repeat)return
@@ -143,8 +154,11 @@ export function mountQuestions(root,config){
     if(route.action==='list')sel=applyListKey(sel,ids(),route.arg)
     else if(route.action==='queue'){const at=queues.findIndex(q=>q.id===queue);setQueue(queues[Math.max(0,Math.min(queues.length-1,at+route.arg))].id)}
     else if(route.action==='undo')undo()
-    else if(route.action==='comment'){if(sel.current!=null){sel=selectOne(sel,sel.current);editing=sel.current}}
+    else if(route.action.startsWith('option:'))stepOption(Number(route.action.slice(7)))
+    else if(route.action==='apply'||(route.action==='comment'&&marked())){const d=marked();if(d)decide(d.id)}
+    else if(route.action==='comment'){if(comment&&sel.current!=null){sel=selectOne(sel,sel.current);editing=sel.current}}
     else decide(route.action.slice('decide:'.length))
+    if(!marked())option=null
     render()
     focusAfter()
   })

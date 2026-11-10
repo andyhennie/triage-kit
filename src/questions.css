@@ -39,6 +39,7 @@
 .questions .qs-decisions { display: flex; gap: 4px; white-space: nowrap; }
 .questions .qs-decisions button { padding: 3px 9px; font-size: 13px; }
 .questions .qs-decisions button:hover { background: var(--tk-hover, #f4f4f5); }
+.questions .qs-decisions button[data-marked] { outline: 2px solid var(--tk-accent, #1147bb); outline-offset: 1px; }
 .questions .qs-decisions button[aria-pressed="true"] { background: var(--qs-tone-bg, #f0f0f1); border-color: var(--qs-tone, currentColor); color: var(--qs-tone, inherit); font-weight: 600; }
 /* Key hints only on the cursor row; hidden ones keep their width so the column stays aligned. */
 .questions .tk-row:not([data-current]) .qs-decisions kbd { visibility: hidden; }

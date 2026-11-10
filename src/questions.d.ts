@@ -10,9 +10,9 @@ export type QuestionItem<T extends Id = string> = {
 export type QuestionDecision = {
   id:string; label:string
   /** Tooltip and export wording when it differs from the label. */ long?:string
-  /** `KeyboardEvent.key` values, e.g. `['ArrowRight']` or `['1']`. Reserved: ↑ ↓ U Enter, Ctrl+arrows. */
+  /** `KeyboardEvent.key` values, e.g. `['1']` or `['s']`. Reserved: ↑ ↓ ← → Space Enter U, Ctrl+arrows. */
   keys?:string[]
-  /** What the button shows for the key, e.g. `'→'`. */ kbd?:string
+  /** What the button shows for the key, e.g. `'1'`. */ kbd?:string
   tone?:QuestionTone
   /** With `comment` on: after this answer on one row, keep the row in place and open its comment. */
   comment?:boolean

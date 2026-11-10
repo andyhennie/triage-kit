@@ -166,10 +166,12 @@ const api = mountQuestions(document.getElementById('app'), {
   pointer shortcuts and not tab stops: the list stays one listbox.
 - **Queues** are tabs with counts: "to decide", one per answer, and all.
   Ctrl+← / Ctrl+→ step them.
+- **← →** walk the answer buttons of the cursor row, and Enter or Space
+  applies the marked one, so a list can be answered with the arrows alone.
 - **An answer key** applies to every selected row as one batch (↑ ↓, ⇧↑ ⇧↓ and
   ⌘A select). Answered rows leave "to decide", so the cursor moves on. U undoes
   the latest batch, one per press.
-- **Comments** (`comment: true`): Enter opens the comment in the cursor row,
+- **Comments** (`comment: true`): Enter, with no button marked, opens the comment in the cursor row,
   Esc returns to the list. An answer with `comment: true` keeps its row in
   place with the comment open, so "wrong" can be explained at once. A saved
   comment shows under its question.
@@ -180,7 +182,7 @@ const api = mountQuestions(document.getElementById('app'), {
   the buttons and the `--qs-*` tone colours. `labels` replaces every built-in
   string; `help` is shown closed, behind a click.
 
-`examples/questions.html` shows a two-answer list on ← and →, and with
+`examples/questions.html` shows a two-answer list on 1 and 2, and with
 `?scale=5` five numbered answers with comments. A static page without a
 bundler vendors one file: `bun build src/questions.js --format esm`, plus the
 three stylesheets concatenated.
