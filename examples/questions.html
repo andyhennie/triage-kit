@@ -37,7 +37,7 @@ mountQuestions(document.getElementById('app'),five?{
   decisions:[
     {id:'send',label:'Send',keys:['1'],kbd:'1',tone:'ok'},
     {id:'skip',label:'Leave out',keys:['2'],kbd:'2',tone:'muted'}],
-  actions:[{label:'Copy the chosen ids',run:api=>api.toast(Object.entries(api.decisions).filter(([,d])=>d==='send').map(([id])=>id).join(', ')||'Nothing chosen yet')}],
+  actions:[{label:'Copy the chosen ids',primary:true,run:api=>api.toast(Object.entries(api.decisions).filter(([,d])=>d==='send').map(([id])=>id).join(', ')||'Nothing chosen yet')}],
   help:{summary:'Keys',lines:['↑ ↓ move · ⇧↑ ⇧↓ extend · ⌘A all','← → choose · ↵ apply · 1 send · 2 leave out · U undo','Ctrl+← Ctrl+→ queue']},
 })
 </script>

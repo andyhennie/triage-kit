@@ -19,7 +19,7 @@ export type QuestionDecision = {
 }
 export type QuestionsLabels = {
   open:string; all:string; list:string; empty:string; comment:string
-  resize:string; undo:string; undone:string; nothingToUndo:string; unchanged:string
+  resize:string; more:string; undo:string; undone:string; nothingToUndo:string; unchanged:string
   selected:(n:number,total:number)=>string
 }
 export type QuestionsApi<T extends Id = string> = {
@@ -39,8 +39,9 @@ export type QuestionsConfig<T extends Id = string> = {
   columnWidths?:(number|null)[]
   /** Drag handles in the header change the widths, saved under `storageKey + ':columns'`. Default true. */
   resizable?:boolean
-  /** App buttons in the toolbar. */ actions?:{label:string; run(api:QuestionsApi<T>):void}[]
-  /** Help text, closed until clicked. */ help?:{summary:string; lines:string[]}
+  /** App actions. `primary` ones are buttons in the header; the rest are in the ⋯ menu. */
+  actions?:{label:string; primary?:boolean; run(api:QuestionsApi<T>):void}[]
+  /** Help text, shown in the ⋯ menu. */ help?:{summary:string; lines:string[]}
   labels?:Partial<QuestionsLabels>
   onChange?(api:QuestionsApi<T>):void
 }

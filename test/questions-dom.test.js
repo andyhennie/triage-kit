@@ -133,3 +133,22 @@ test('the cursor row always has a marked answer; ← → move it, Enter or Space
   assert.deepEqual(shown(),['c'])
   assert.equal(label(),'Send')
 })
+
+test('one header row: primary actions are buttons, the rest and the help are in a closed menu',()=>{
+  const root=document.createElement('div')
+  document.body.replaceChildren(root)
+  const ran=[]
+  mountQuestions(root,{title:'Queue',storageKey:'m',storage:memory(),items:[{id:'a',title:'Row a'}],
+    decisions:[{id:'yes',label:'Yes',keys:['1']}],help:{summary:'Keys',lines:['1 yes']},
+    actions:[{label:'Export',primary:true,run:()=>ran.push('export')},{label:'Reset',run:()=>ran.push('reset')}]})
+  assert.equal(root.querySelector('.tk-toolbar'),null)
+  const header=root.querySelector('.tk-header'),menu=header.querySelector('.qs-menu')
+  assert.deepEqual([...header.querySelectorAll('.qs-tools > button')].map(b=>b.textContent),['Export'])
+  assert.equal(menu.hasAttribute('open'),false)
+  assert.deepEqual([...menu.querySelectorAll('button')].map(b=>b.textContent),['Reset'])
+  assert.match(menu.querySelector('.qs-help').textContent,/Keys1 yes/)
+  menu.setAttribute('open','')
+  menu.querySelector('button').dispatchEvent(new MouseEvent('click',{bubbles:true}))
+  assert.deepEqual(ran,['reset'])
+  assert.equal(menu.hasAttribute('open'),false)
+})

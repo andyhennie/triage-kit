@@ -157,13 +157,15 @@ const api = mountQuestions(document.getElementById('app'), {
     {id: 'yes',   label: 'Yes',   keys: ['1'], kbd: '1', tone: 'ok'},
     {id: 'wrong', label: 'Wrong', keys: ['2'], kbd: '2', tone: 'bad', comment: true},
   ],
-  actions: [{label: 'Export', run: api => download(api.rows())}],
+  actions: [{label: 'Export', primary: true, run: api => download(api.rows())}],
 })
 ```
 
 - **Rows** grow with their text, so a question is never cut off. Each row has
   one button per answer; the cursor row shows their keys. The buttons are
   pointer shortcuts and not tab stops: the list stays one listbox.
+- **One header row**: title, queue tabs, the `primary` actions as buttons, and
+  a ⋯ menu with the other actions and the `help` text.
 - **Queues** are tabs with counts: "to decide", one per answer, and all.
   Ctrl+← / Ctrl+→ step them.
 - **One answer button is always marked** on the cursor row. ← → move the mark
@@ -185,7 +187,7 @@ const api = mountQuestions(document.getElementById('app'), {
   user drags the header edges to change them and double-clicks to reset; the
   widths are saved next to the answers. `resizable: false` turns it off.
 - **Look**: the `--tk-*` variables and the `--qs-*` tone colours. `labels`
-  replaces every built-in string; `help` is shown closed, behind a click.
+  replaces every built-in string.
 
 `examples/questions.html` shows a two-answer list on 1 and 2, and with
 `?scale=5` five numbered answers with comments. A static page without a

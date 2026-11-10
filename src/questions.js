@@ -29,7 +29,7 @@ export function mountQuestions(root,config){
   // The four cells before the answer buttons; null is the question, which takes the rest.
   const columnWidths=config.columnWidths??[32,null,150,84]
   const L={open:'To decide',all:'All',list:'Questions',empty:'Nothing here',comment:'Comment',
-    resize:'Drag to resize, double-click to reset',undo:'Undo',undone:'Undone',nothingToUndo:'Nothing to undo',unchanged:'No change',
+    resize:'Drag to resize, double-click to reset',more:'More',undo:'Undo',undone:'Undone',nothingToUndo:'Nothing to undo',unchanged:'No change',
     selected:(n,total)=>`${n} selected · ${total}`,...config.labels}
   let storage=config.storage
   if(storage===undefined)try{storage=globalThis.localStorage}catch{storage=null}
@@ -58,20 +58,25 @@ export function mountQuestions(root,config){
   for(const d of decisions)for(const key of d.keys??[])keys[key]=`decide:${d.id}`
   Object.assign(keys,{ArrowLeft:'option:-1',ArrowRight:'option:1',' ':'apply',c:'comment',C:'comment'})
 
-  const tabs=h('nav',{'aria-label':'Queues'}),toolbar=h('div',{class:'tk-toolbar'})
+  const tabs=h('nav',{'aria-label':'Queues'})
   const list=h('div',{class:'tk-list',role:'listbox',tabindex:'0','aria-label':L.list,'aria-multiselectable':'true'})
   const count=h('span'),statusLine=h('div',{class:'tk-status',role:'status','aria-live':'polite','aria-atomic':'true'})
   const undoButton=h('button',{type:'button',title:'U','aria-keyshortcuts':'u',onclick:()=>{undo();render();list.focus()}},L.undo,h('kbd',{text:'U'}))
+  // One header row: primary actions stay visible, the other actions and the help sit in a menu.
+  const actionButton=action=>h('button',{type:'button',text:action.label,onclick:()=>{menu?.removeAttribute('open');action.run(api)}})
+  const rest=actions.filter(action=>!action.primary)
+  const menu=rest.length||help?h('details',{class:'qs-menu'},
+    h('summary',{'aria-label':L.more,title:L.more,text:'⋯'}),
+    h('div',{class:'qs-menu-panel'},rest.map(actionButton),
+      help&&h('div',{class:'qs-help'},h('strong',{text:help.summary}),help.lines.map(text=>h('p',{text}))))):null
+  const tools=h('div',{class:'tk-actions qs-tools'},actions.filter(action=>action.primary).map(actionButton),menu)
   const head=h('div',{class:'tk-head','aria-hidden':'true'},columns.map(text=>h('span',{text})))
   const page=h('main',{class:'triage-kit-workbench questions'},
-    h('header',{class:'tk-header'},h('strong',{text:title}),tabs),
-    toolbar,
+    h('header',{class:'tk-header'},h('strong',{text:title}),tabs,tools),
     head,
     list,
     h('footer',{class:'tk-footer'},count,h('div',{class:'tk-actions'},undoButton)),
     statusLine)
-  if(help)toolbar.append(h('details',{class:'qs-help'},h('summary',{text:help.summary}),help.lines.map(text=>h('p',{text}))))
-  toolbar.append(h('div',{class:'tk-actions'},actions.map(action=>h('button',{type:'button',text:action.label,onclick:()=>action.run(api)}))))
 
   // Close the open comment; a row that no longer belongs to this queue leaves and hands the cursor on.
   function stopEditing(){
@@ -157,6 +162,11 @@ export function mountQuestions(root,config){
     statusLine.textContent=status
   }
 
+  // The menu closes on Escape and on a click outside it.
+  page.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&menu?.hasAttribute('open')){menu.removeAttribute('open');list.focus()}
+  })
+  page.addEventListener('mousedown',e=>{if(menu&&!menu.contains(e.target))menu.removeAttribute('open')})
   page.addEventListener('keydown',e=>{
     const route=routeKey(e,{queues:true,keys,open:false,enter:'apply'})
     if(!route)return
