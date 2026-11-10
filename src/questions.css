@@ -39,8 +39,11 @@
 .questions .qs-decisions { display: flex; gap: 4px; white-space: nowrap; }
 .questions .qs-decisions button { padding: 2px 8px; font-size: 12px; }
 .questions .qs-decisions button:hover { background: var(--tk-hover, #f4f4f5); }
-.questions .qs-decisions button[data-marked] { outline: 2px solid var(--tk-accent, #1147bb); outline-offset: 1px; }
 .questions .qs-decisions button[aria-pressed="true"] { background: var(--qs-tone-bg, #f0f0f1); border-color: var(--qs-tone, currentColor); color: var(--qs-tone, inherit); font-weight: 600; }
+/* The marked answer (what Enter applies) is a filled button, not a ring. It wins over hover
+   and over the tint of an answer the row already has. */
+.questions .qs-decisions button[data-marked], .questions .qs-decisions button[data-marked]:hover { background: var(--tk-accent, var(--selection-edge, #1147bb)); border-color: var(--tk-accent, var(--selection-edge, #1147bb)); color: var(--tk-canvas, var(--background, #fff)); }
+.questions .qs-decisions button[data-marked] kbd { color: inherit; opacity: .75; }
 /* Key hints only on the cursor row; hidden ones keep their width so the column stays aligned. */
 .questions .tk-row:not([data-current]) .qs-decisions kbd { visibility: hidden; }
 .questions .qs-comment { display: block; width: 100%; margin-top: 6px; font: inherit; font-size: 13px; color: inherit; background: var(--tk-canvas, #fff); border: 1px solid var(--border, #e4e4e7); border-radius: 7px; padding: 6px 9px; resize: vertical; user-select: text; }
