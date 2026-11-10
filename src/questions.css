@@ -76,17 +76,34 @@
 .questions .qs-comment { display: block; width: 100%; margin-top: 6px; font: inherit; font-size: 16px; color: inherit; background: var(--tk-canvas, #fff); border: 1px solid var(--border, #e4e4e7); border-radius: 7px; padding: 6px 9px; resize: vertical; user-select: text; }
 .questions :is(button, textarea, summary):focus-visible { outline: 2px solid var(--tk-accent, #1147bb); outline-offset: 1px; }
 /* On a phone the open tab says where you are; the title comes back when there is room. */
-@media (max-width: 559px) {
+@media (max-width: 759px) {
   .questions .tk-header > strong { display: none; }
+}
+@media (max-width: 559px) {
   .questions .tk-header nav button { padding: 6px 9px; }
 }
 @media (hover: hover) {
   .questions .qs-decisions button:hover { background: var(--tk-hover, #f4f4f5); }
 }
 
-/* Tablet: the same card, with buttons at their own width. */
+/* Tablet: close to one row. Question with area and status under it on the left, the
+   buttons on the right. Many answers wrap inside their half instead of squeezing the text. */
 @media (min-width: 560px) {
-  .questions .qs-decisions button { flex: none; min-height: 36px; }
+  .questions .tk-row {
+    padding-block: 8px; row-gap: 2px; align-items: center;
+    grid-template-columns: 24px minmax(0, max-content) minmax(0, 1fr) fit-content(50%);
+    grid-template-areas: "n title title answers" ". group tag answers";
+  }
+  .questions .qs-decisions { align-self: center; justify-content: flex-end; }
+  .questions .qs-decisions button { flex: none; min-height: 34px; }
+}
+/* Four or more answers need more room before they fit beside the question; until then they go under it. */
+@media (min-width: 560px) and (max-width: 759px) {
+  .questions .tk-row:has(.qs-decisions > :nth-child(4)) {
+    row-gap: 6px; grid-template-columns: 24px minmax(0, max-content) minmax(0, 1fr);
+    grid-template-areas: "n title title" ". group tag" ". answers answers";
+  }
+  .questions .tk-row:has(.qs-decisions > :nth-child(4)) .qs-decisions { justify-content: flex-start; }
 }
 
 /* Desktop: the table. Rows grow with the question; one line when it fits. */
