@@ -48,29 +48,65 @@
 .questions .qs-help strong { font-weight: 600; }
 .questions .qs-help p { margin: 4px 0 0; }
 
-/* Rows grow with the question; one line when it fits. */
-.questions .tk-row { height: auto; min-height: 32px; padding-block: 3px; }
-.questions .qs-title { min-width: 0; line-height: 1.4; overflow-wrap: anywhere; }
+/* Mobile first. A row is a small card: number and question, then area and status, then the
+   answer buttons as touch targets. From 960px it becomes the table with a header and columns. */
+.questions .tk-head { display: none; }
+.questions .tk-row {
+  height: auto; min-height: 0; padding: 10px var(--tk-row-pad-x, 16px); row-gap: 6px;
+  grid-template-columns: 24px minmax(0, max-content) minmax(0, 1fr);
+  grid-template-areas: "n title title" ". group tag" ". answers answers";
+}
+.questions .tk-row > * { align-self: start; }
+.questions .qs-leading { grid-area: n; line-height: 1.45; }
+.questions .qs-title { grid-area: title; min-width: 0; line-height: 1.45; overflow-wrap: anywhere; font-size: 15px; }
 .questions .qs-title > span { display: block; }
-.questions .qs-note { font-size: 12px; }
-.questions .qs-tag { font-size: 12px; color: var(--qs-tone, var(--tk-muted, #71717a)); }
-.questions .qs-decisions { display: flex; gap: 4px; white-space: nowrap; }
-.questions .qs-decisions button { padding: 2px 8px; font-size: 12px; }
-.questions .qs-decisions button:hover { background: var(--tk-hover, #f4f4f5); }
+.questions .qs-note { font-size: 13px; margin-top: 2px; }
+.questions .qs-group, .questions .qs-tag { font-size: 12px; }
+.questions .qs-group { grid-area: group; }
+.questions .qs-tag { grid-area: tag; color: var(--qs-tone, var(--tk-muted, #71717a)); }
+.questions .qs-decisions { grid-area: answers; display: flex; flex-wrap: wrap; gap: 6px; }
+.questions .qs-decisions button { flex: 1 1 auto; min-height: 40px; padding: 6px 12px; font-size: 14px; white-space: nowrap; }
+.questions .qs-decisions kbd { display: none; }
 .questions .qs-decisions button[aria-pressed="true"] { background: var(--qs-tone-bg, #f0f0f1); border-color: var(--qs-tone, currentColor); color: var(--qs-tone, inherit); font-weight: 600; }
 /* The marked answer (what Enter applies) is a filled button, not a ring. It wins over hover
    and over the tint of an answer the row already has. */
 .questions .qs-decisions button[data-marked], .questions .qs-decisions button[data-marked]:hover { background: var(--tk-accent, var(--selection-edge, #1147bb)); border-color: var(--tk-accent, var(--selection-edge, #1147bb)); color: var(--tk-canvas, var(--background, #fff)); }
 .questions .qs-decisions button[data-marked] kbd { color: inherit; opacity: .75; }
-/* Key hints only on the cursor row; hidden ones keep their width so the column stays aligned. */
-.questions .tk-row:not([data-current]) .qs-decisions kbd { visibility: hidden; }
-.questions .qs-comment { display: block; width: 100%; margin-top: 6px; font: inherit; font-size: 13px; color: inherit; background: var(--tk-canvas, #fff); border: 1px solid var(--border, #e4e4e7); border-radius: 7px; padding: 6px 9px; resize: vertical; user-select: text; }
+/* 16px in the comment field so iOS does not zoom in when it gets focus. */
+.questions .qs-comment { display: block; width: 100%; margin-top: 6px; font: inherit; font-size: 16px; color: inherit; background: var(--tk-canvas, #fff); border: 1px solid var(--border, #e4e4e7); border-radius: 7px; padding: 6px 9px; resize: vertical; user-select: text; }
 .questions :is(button, textarea, summary):focus-visible { outline: 2px solid var(--tk-accent, #1147bb); outline-offset: 1px; }
+/* On a phone the open tab says where you are; the title comes back when there is room. */
+@media (max-width: 559px) {
+  .questions .tk-header > strong { display: none; }
+  .questions .tk-header nav button { padding: 6px 9px; }
+}
+@media (hover: hover) {
+  .questions .qs-decisions button:hover { background: var(--tk-hover, #f4f4f5); }
+}
 
-/* Narrow: number and question on the first line, the buttons under the question. */
-@media (max-width: 900px) {
-  .questions .tk-head, .questions .qs-group, .questions .qs-tag { display: none; }
-  .questions .tk-row { grid-template-columns: 28px minmax(0, 1fr); row-gap: 6px; padding-block: 8px; }
-  .questions .qs-decisions { grid-column: 2; flex-wrap: wrap; }
+/* Tablet: the same card, with buttons at their own width. */
+@media (min-width: 560px) {
+  .questions .qs-decisions button { flex: none; min-height: 36px; }
+}
+
+/* Desktop: the table. Rows grow with the question; one line when it fits. */
+@media (min-width: 960px) {
+  .questions .tk-head { display: grid; }
+  .questions .tk-row {
+    min-height: 32px; padding-block: 3px; row-gap: 0;
+    grid-template-columns: var(--tk-columns); grid-template-areas: none;
+  }
+  .questions .tk-row > * { grid-area: auto; align-self: auto; }
+  .questions .qs-title { font-size: inherit; line-height: 1.4; }
+  .questions .qs-decisions { flex-wrap: nowrap; gap: 4px; }
+  .questions .qs-decisions button { min-height: 0; padding: 2px 8px; font-size: 12px; }
+  .questions .qs-decisions kbd { display: inline; }
+  /* Key hints only on the cursor row; hidden ones keep their width so the column stays aligned. */
+  .questions .tk-row:not([data-current]) .qs-decisions kbd { visibility: hidden; }
+  .questions .qs-comment { font-size: 13px; }
+}
+/* A touch screen wide enough for the table still gets buttons a finger can hit. */
+@media (min-width: 960px) and (pointer: coarse) {
+  .questions .qs-decisions button { min-height: 32px; padding-inline: 10px; font-size: 13px; }
   .questions .qs-decisions kbd { display: none; }
 }
