@@ -22,8 +22,12 @@
 .questions [data-tone="muted"] { --qs-tone: var(--qs-muted); --qs-tone-bg: var(--qs-muted-bg); }
 
 .questions > .tk-list { flex: 1; }
-.questions .tk-header { justify-content: flex-start; padding-block: 6px; }
-.questions .qs-tools { margin-left: auto; }
+/* The header is always one row: the tools keep their width, the tabs scroll sideways and the title is cut when they do not fit. */
+.questions .tk-header { justify-content: flex-start; padding-block: 6px; flex-wrap: nowrap; white-space: nowrap; }
+.questions .tk-header > * { flex: none; }
+.questions .tk-header > strong { flex: 0 4 auto; min-width: 3ch; overflow: hidden; text-overflow: ellipsis; }
+.questions .tk-header > nav { flex: 0 1 auto; min-width: min(96px, 30%); flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.questions .qs-tools { margin-left: auto; flex-wrap: nowrap; }
 .questions button { cursor: pointer; }
 /* Queue tabs are quiet text; the open one is filled. */
 .questions .tk-header nav { gap: 2px; }
