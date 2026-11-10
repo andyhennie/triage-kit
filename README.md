@@ -139,6 +139,15 @@ React: `?look=mail` and `?look=ledger` (`examples/look-*.css`). Serve the repo
 root (`python3 -m http.server`) and open it. `?override=before|after` loads
 `examples/override.css` on either side of `list.css`.
 
+`examples/decide.html` is a third composition, a decision list: queue tabs, one
+key per decision applied to the selection as one batch, U to undo, and an
+inspector for the row under the cursor (`examples/decide.js`, `decide.css`,
+without React). The default has two decisions on ← and →; `?scale=5` has five
+numbered decisions and a comment per row. Items, decisions, keys and labels are
+one config object and decisions are kept in `localStorage`. It is an example to
+iterate on, not yet part of the package API; a page that wants it bundles
+`examples/decide.js` and vendors the result.
+
 ## React
 
 ```js
