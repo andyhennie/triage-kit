@@ -22,7 +22,7 @@ export function routeKey(e,{modal=false,queues=false,keys={},approveList=false,e
   // 4. Domain keys: bare or Shift-only, never on a field or control, never repeated.
   if(!e.metaKey&&!e.ctrlKey&&!e.altKey&&!target&&Object.hasOwn(keys,e.key))return {action:keys[e.key],repeat:false}
   // 5. ⌘↵ (or Ctrl+↵, since Super often belongs to the window manager) approves the list.
-  if(approveList&&e.key==='Enter'&&e.metaKey!==e.ctrlKey&&!e.altKey&&!e.shiftKey&&e.target?.tagName!=='TEXTAREA')
+  if(approveList&&e.key==='Enter'&&!!e.metaKey!==!!e.ctrlKey&&!e.altKey&&!e.shiftKey&&e.target?.tagName!=='TEXTAREA')
     return {action:'approveList',repeat:false}
   // 6. ↑↓ ⇧↑↓ ⌘A.
   const list=listKey(e)

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>triage-kit · compare</title>
+<!-- A list of holiday offers with a side pane. ↑↓ moves, ⇧↑↓ selects several, ↵ compares the
+     selected offers side by side (one offer: just that one), Esc goes back to the list. -->
+<link rel="stylesheet" href="../src/list.css">
+<link rel="stylesheet" href="../src/compare.css">
+<style>
+  body { margin: 0; font: 14px Inter, ui-sans-serif, system-ui, sans-serif; color: #18181b; background: #fff; }
+  .page { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); height: 100dvh; }
+  .page > section { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid #f4f4f5; }
+  h1 { margin: 0; padding: 10px 20px; font-size: 16px; font-weight: 500; }
+  .tk-list { --tk-columns: minmax(0, 1fr) 110px 90px; flex: 1; }
+  #pane { overflow: auto; padding-top: 12px; }
+  #pane p { padding: 0 20px; color: #71717a; }
+  @media (max-width: 720px) { .page { grid-template-columns: 1fr; grid-template-rows: auto 1fr; } }
+</style>
+</head>
+<body>
+<main class="page">
+  <section>
+    <h1>Offers</h1>
+    <div class="tk-list" id="list" role="listbox" aria-label="Offers" aria-multiselectable="true" tabindex="0"></div>
+  </section>
+  <aside id="pane" aria-live="polite"></aside>
+</main>
+<script type="module">
+import {selectOne, applyListKey, routeKey} from '../src/index.js'
+import {mountCompare} from '../src/compare.js'
+
+const h=(hh,mm=0)=>hh+mm/60
+const offers=[
+  {id:'a',name:'Garden resort',place:'Red Sea',dates:'17–24 Feb',total:36774,board:'All inclusive',schoolDays:3,
+    out:[{start:h(13,40),end:h(17,0)},{start:h(17,0),end:h(19,15),kind:'gap',label:'Layover 2h15'},{start:h(19,15),end:h(23,30)}],
+    home:[{start:h(4,35),end:h(7,0)},{start:h(7,0),end:h(9,20),kind:'gap',label:'Layover 2h20'},{start:h(9,20),end:h(12,35)}]},
+  {id:'b',name:'Cliff family resort',place:'Atlantic',dates:'24 Feb–3 Mar',total:40203,board:'All inclusive',schoolDays:3,
+    out:[{start:h(9,30),end:h(11,25)},{start:h(11,25),end:h(14,40),kind:'gap',label:'Layover 3h15'},{start:h(14,40),end:h(18,25)}],
+    home:[{start:h(11,35),end:h(17,15)},{start:h(17,15),end:h(20,55),kind:'gap',label:'Layover 3h40'},{start:h(20,55),end:h(22,40)}]},
+  {id:'c',name:'Beach suites',place:'Atlantic',dates:'24 Feb–3 Mar',total:39920,board:'Half board',schoolDays:3,
+    out:[{start:h(7,10),end:h(13,5)}],home:[{start:h(14,0),end:h(19,50)}]},
+]
+const day={min:0,max:24,ticks:[0,6,12,18,24],shade:[[0,6],[22,24]]}
+const nok=n=>n.toLocaleString('nb-NO')+' kr'
+const fields=[
+  {label:'Dates',value:o=>o.dates,differs:true},
+  {label:'School days',value:o=>o.schoolDays,better:'low'},
+  {label:'Out',spans:o=>o.out,axis:day},
+  {label:'Home',spans:o=>o.home,axis:day},
+  {label:'Board',value:o=>o.board,differs:true},
+  {label:'Total',value:o=>o.total,format:nok,better:'low'},
+]
+
+const list=document.getElementById('list'),pane=document.getElementById('pane'),ids=offers.map(o=>o.id)
+let state=selectOne({selection:new Set(),current:null,selectionAnchor:null},ids[0]),view=null
+const render=()=>{
+  list.replaceChildren(...offers.map(o=>{
+    const row=document.createElement('div')
+    Object.assign(row,{className:'tk-row',id:'row-'+o.id})
+    row.setAttribute('role','option');row.setAttribute('aria-selected',String(state.selection.has(o.id)))
+    if(state.current===o.id)row.dataset.current=''
+    for(const [text,cls] of [[`${o.name} · ${o.place}`,''],[o.dates,'tk-muted'],[nok(o.total),'tk-num']]){
+      const cell=document.createElement('span');cell.className='tk-cell '+cls;cell.textContent=text;row.append(cell)}
+    row.onclick=()=>{state=selectOne(state,o.id);render()}
+    return row
+  }))
+  list.setAttribute('aria-activedescendant','row-'+state.current)
+}
+// ↵ shows the selected offers side by side; with one selected it is that offer's own column.
+const compare=()=>{
+  const chosen=offers.filter(o=>state.selection.has(o.id))
+  view?.destroy()
+  pane.replaceChildren()
+  view=mountCompare(pane,{items:chosen,fields,title:o=>o.name,subtitle:o=>o.place,formatDelta:d=>'+'+nok(d)})
+}
+const back=()=>{view?.destroy();view=null;pane.replaceChildren(Object.assign(document.createElement('p'),{textContent:'Select offers with ⇧↑↓ and press ↵ to compare them.'}))}
+list.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&view){e.preventDefault();back();return}
+  const r=routeKey(e,{enter:'compare',open:false,undo:false})
+  if(!r)return
+  e.preventDefault()
+  if(r.action==='list'){state=applyListKey(state,ids,r.arg);render()}
+  if(r.action==='compare')compare()
+})
+render();back();list.focus()
+</script>
+</body>
+</html>

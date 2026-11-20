@@ -1,0 +1,190 @@
+// mountQuestions in a DOM: a key is one batch for the selection, decided rows
+// leave the open queue and hand the cursor on, U restores, and state survives a remount.
+import {test, before, after} from 'node:test'
+import assert from 'node:assert/strict'
+import {Window} from 'happy-dom'
+
+const window=new Window({url:'http://localhost/'})
+let mountQuestions
+
+before(async()=>{
+  for(const key of ['window','document','navigator','HTMLElement','Node','Event','KeyboardEvent','MouseEvent'])
+    Object.defineProperty(globalThis,key,{value:key==='window'?window:window[key],configurable:true,writable:true})
+  ;({mountQuestions}=await import('../src/questions.js'))
+})
+after(()=>window.happyDOM.close())
+
+function mount(storage=memory()){
+  const root=document.createElement('div')
+  document.body.replaceChildren(root)
+  const api=mountQuestions(root,{title:'Queue',storageKey:'t',storage,comment:true,
+    items:['a','b','c','d'].map(id=>({id,title:`Row ${id}`})),
+    decisions:[{id:'send',label:'Send',keys:['1'],kbd:'1'},{id:'skip',label:'Skip',keys:['2'],kbd:'2'},
+      {id:'wrong',label:'Wrong',keys:['4'],kbd:'4',comment:true}]})
+  const list=root.querySelector('.tk-list')
+  const press=(key,init={},target=list)=>target.dispatchEvent(new KeyboardEvent('keydown',{key,bubbles:true,cancelable:true,...init}))
+  const shown=()=>[...root.querySelectorAll('.tk-row')].map(row=>row.dataset.id)
+  const current=()=>root.querySelector('.tk-row[data-current]')?.dataset.id
+  return {root,api,list,press,shown,current,storage}
+}
+function memory(){
+  const map=new Map()
+  return {getItem:key=>map.get(key)??null,setItem:(key,value)=>map.set(key,value)}
+}
+
+test('a decision key applies to the selection as one batch and the cursor moves on',()=>{
+  const {api,press,shown,current}=mount()
+  press('ArrowDown',{shiftKey:true})
+  press('1')
+  assert.deepEqual(api.decisions,{a:'send',b:'send'})
+  assert.deepEqual(shown(),['c','d'])
+  assert.equal(current(),'c')
+  press('2')
+  assert.deepEqual(shown(),['d'])
+  press('u')
+  assert.deepEqual(api.decisions,{a:'send',b:'send'})
+  press('u')
+  assert.deepEqual(api.decisions,{})
+  assert.deepEqual(shown(),['a','b','c','d'])
+})
+
+test('a held decision key runs once, and keys on a button or in the comment are left alone',()=>{
+  const {root,api,press,current}=mount()
+  press('1')
+  press('1',{repeat:true})
+  assert.deepEqual(api.decisions,{a:'send'})
+  press('1',{},root.querySelector('.qs-decisions button'))
+  press('c')
+  assert.equal(document.activeElement,root.querySelector('.qs-comment'))
+  press('1',{},root.querySelector('.qs-comment'))
+  assert.deepEqual(api.decisions,{a:'send'})
+  assert.equal(current(),'b')
+})
+
+test('Ctrl+arrows step the queue tabs and decisions survive a remount',()=>{
+  const first=mount()
+  first.press('1')
+  first.press('ArrowRight',{ctrlKey:true})
+  assert.deepEqual(first.shown(),['a'])
+  assert.equal(first.root.querySelector('nav button[aria-pressed="true"]').firstChild.textContent,'Send')
+  const again=mount(first.storage)
+  assert.deepEqual(again.api.decisions,{a:'send'})
+  assert.deepEqual(again.shown(),['b','c','d'])
+  again.press('u')
+  assert.deepEqual(again.api.decisions,{})
+})
+
+test('an answer that asks for a comment keeps its row in place with the comment open until Esc',()=>{
+  const {root,api,list,press,shown,current}=mount()
+  press('4')
+  assert.deepEqual(shown(),['a','b','c','d'])
+  const note=root.querySelector('.tk-row[data-id="a"] .qs-comment')
+  assert.equal(document.activeElement,note)
+  note.value='not like that'
+  note.dispatchEvent(new Event('input',{bubbles:true}))
+  assert.deepEqual(api.comments,{a:'not like that'})
+  press('Escape',{},note)
+  assert.equal(document.activeElement,list)
+  assert.deepEqual(shown(),['b','c','d'])
+  assert.equal(current(),'b')
+  assert.deepEqual(api.rows()[0],{id:'a',title:'Row a',decision:'wrong',comment:'not like that'})
+})
+
+test('the answer buttons are in the row, answer on click and are not tab stops',()=>{
+  const {root,api,shown}=mount()
+  const button=root.querySelectorAll('.tk-row[data-id="c"] .qs-decisions button')[1]
+  assert.equal(button.getAttribute('tabindex'),'-1')
+  button.dispatchEvent(new MouseEvent('click',{bubbles:true}))
+  assert.deepEqual(api.decisions,{c:'skip'})
+  assert.deepEqual(shown(),['a','b','d'])
+  assert.equal(root.querySelector('.tk-inspector'),null)
+})
+
+test('the cursor row always has a marked answer; ← → move it, Enter or Space applies it',()=>{
+  const {root,api,press,shown,current}=mount()
+  const marked=()=>root.querySelectorAll('.qs-decisions button[data-marked]')
+  const label=()=>marked()[0].firstChild.textContent
+  assert.equal(marked().length,1)
+  assert.equal(label(),'Send')
+  assert.equal(marked()[0].closest('.tk-row').dataset.id,'a')
+  press('ArrowRight')
+  assert.equal(label(),'Skip')
+  press('ArrowRight')
+  press('ArrowRight')
+  assert.equal(label(),'Wrong')
+  press('ArrowLeft')
+  assert.equal(label(),'Skip')
+  assert.deepEqual(api.decisions,{})
+  press('Enter')
+  assert.deepEqual(api.decisions,{a:'skip'})
+  assert.deepEqual(shown(),['b','c','d'])
+  // The mark keeps its column on the next rows, so the same answer is Enter again.
+  assert.equal(current(),'b')
+  assert.equal(label(),'Skip')
+  press('ArrowDown')
+  assert.equal(current(),'c')
+  assert.equal(marked().length,1)
+  assert.equal(label(),'Skip')
+  press('ArrowLeft')
+  press(' ')
+  assert.deepEqual(api.decisions,{a:'skip',c:'send'})
+  // In a queue that keeps answered rows, the mark starts on the row's own answer.
+  press('ArrowRight',{ctrlKey:true})
+  assert.deepEqual(shown(),['c'])
+  assert.equal(label(),'Send')
+})
+
+test('one header row: primary actions are buttons, the rest and the help are in a closed menu',()=>{
+  const root=document.createElement('div')
+  document.body.replaceChildren(root)
+  const ran=[]
+  mountQuestions(root,{title:'Queue',storageKey:'m',storage:memory(),items:[{id:'a',title:'Row a'}],
+    decisions:[{id:'yes',label:'Yes',keys:['1']}],help:{summary:'Keys',lines:['1 yes']},
+    actions:[{label:'Export',primary:true,run:()=>ran.push('export')},{label:'Reset',run:()=>ran.push('reset')}]})
+  assert.equal(root.querySelector('.tk-toolbar'),null)
+  const header=root.querySelector('.tk-header'),menu=header.querySelector('.qs-menu')
+  assert.deepEqual([...header.querySelectorAll('.qs-tools > button')].map(b=>b.textContent),['Export'])
+  assert.equal(menu.hasAttribute('open'),false)
+  assert.deepEqual([...menu.querySelectorAll('button')].map(b=>b.textContent),['Reset'])
+  assert.match(menu.querySelector('.qs-help').textContent,/Keys1 yes/)
+  menu.setAttribute('open','')
+  menu.querySelector('button').dispatchEvent(new MouseEvent('click',{bubbles:true}))
+  assert.deepEqual(ran,['reset'])
+  assert.equal(menu.hasAttribute('open'),false)
+})
+
+test('a proposal marks its button on every row, Enter applies it, and setItems brings later ones',()=>{
+  const root=document.createElement('div')
+  document.body.replaceChildren(root)
+  const api=mountQuestions(root,{title:'Q',storageKey:'p',storage:memory(),
+    items:[{id:'a',title:'A',proposal:'skip'},{id:'b',title:'B'}],
+    decisions:[{id:'send',label:'Send',keys:['1']},{id:'skip',label:'Skip',keys:['2']}]})
+  const list=root.querySelector('.tk-list')
+  const press=key=>list.dispatchEvent(new KeyboardEvent('keydown',{key,bubbles:true,cancelable:true}))
+  assert.equal(root.querySelector('.tk-row[data-id="a"] button[data-proposed]').textContent,'Skip')
+  assert.equal(root.querySelector('.tk-row[data-id="a"] button[data-marked]').textContent,'Skip')
+  press('Enter')
+  assert.deepEqual(api.decisions,{a:'skip'})
+  api.setItems([{id:'a',title:'A',proposal:'skip'},{id:'b',title:'B',proposal:'send'}])
+  assert.equal(root.querySelector('.tk-row[data-current]').dataset.id,'b')
+  assert.equal(root.querySelector('.tk-row[data-id="b"] button[data-marked]').textContent,'Send')
+  api.undo()
+  assert.deepEqual(api.decisions,{})
+})
+
+test('onCurrent reports the cursor row once per change',()=>{
+  const root=document.createElement('div'),seen=[]
+  document.body.replaceChildren(root)
+  mountQuestions(root,{title:'Q',storageKey:'c',storage:memory(),items:[{id:'a',title:'A'},{id:'b',title:'B'}],
+    decisions:[{id:'send',label:'Send',keys:['1']}],onCurrent:id=>seen.push(id)})
+  const list=root.querySelector('.tk-list'),press=key=>list.dispatchEvent(new KeyboardEvent('keydown',{key,bubbles:true,cancelable:true}))
+  press('ArrowDown');press('ArrowDown');press('1')
+  assert.deepEqual(seen,['a','b','a'])
+})
+
+test('queue tabs carry their count for apps that hide empty ones',()=>{
+  const root=document.createElement('div')
+  document.body.replaceChildren(root)
+  mountQuestions(root,{title:'Q',storageKey:'n',storage:memory(),items:[{id:'a',title:'A'}],decisions:[{id:'send',label:'Send',keys:['1']}]})
+  assert.deepEqual([...root.querySelectorAll('.tk-header nav button')].map(b=>b.dataset.count),['1','0','1'])
+})

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "triage-inspector",
+  "title": "Triage inspector",
+  "description": "Inspector panel, one-line key help and action buttons that show their key.",
+  "registryDependencies": [
+    "kbd"
+  ],
+  "files": [
+    {
+      "path": "registry/triage/triage-inspector.tsx",
+      "content": "import * as React from \"react\"\nimport { cn } from \"@/lib/utils\"\nimport { Kbd } from \"@/components/ui/kbd\"\n\n// The current row's details. Hidden below 520 px of container width (the row is the card there).\nexport function TriageInspector({ className, ...props }: React.ComponentProps<\"aside\">) {\n  return (\n    <aside\n      data-slot=\"triage-inspector\"\n      className={cn(\"hidden min-h-0 space-y-2 overflow-auto @min-[520px]:block\", className)}\n      {...props}\n    />\n  )\n}\n\n// One line listing the keys that work here: [[\"↑↓\", \"move\"], [\"U\", \"undo\"]].\nexport function TriageHelp({ keys, className, ...props }: { keys: [string, string][] } & React.ComponentProps<\"p\">) {\n  return (\n    <p data-slot=\"triage-help\" className={cn(\"flex flex-wrap gap-x-2.5 gap-y-1 text-xs text-muted-foreground\", className)} {...props}>\n      {keys.map(([k, label]) => (\n        <span key={k} className=\"whitespace-nowrap\"><Kbd>{k}</Kbd> {label}</span>\n      ))}\n    </p>\n  )\n}\n\n// An action button that shows its key and announces it (aria-keyshortcuts, title).\nexport function TriageAction({ shortcut, label, ariaKeys, className, children, ...props }:\n  { shortcut: string; label?: string; ariaKeys: string } & React.ComponentProps<\"button\">) {\n  return (\n    <button\n      type=\"button\"\n      aria-keyshortcuts={ariaKeys}\n      title={`${label ?? \"\"} (${shortcut})`.trim()}\n      className={cn(\"inline-flex h-7 items-center gap-1.5 rounded-md border bg-secondary px-2 text-xs font-medium hover:bg-secondary/80\", className)}\n      {...props}\n    >\n      {children ?? label}<Kbd>{shortcut}</Kbd>\n    </button>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/triage/triage-inspector.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>triage-kit · questions</title>
+<!-- Lines of text to answer, row by row, with the answer buttons in the row. Default: two answers on 1 and 2.
+     ?scale=5 shows the same list with five numbered decisions and a comment per row. -->
+<link rel="stylesheet" href="../src/questions.css">
+<style>body { margin: 0; }</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+import {mountQuestions} from '../src/questions.js'
+
+const areas=['Orders','Field work','Templates','Access','Delivery']
+const texts=['One order can hold several reports','Work continues without a network connection','Templates are maintained centrally at launch',
+  'Ready-made roles are enough at launch','A correction after delivery becomes a new revision that leaves the delivered one untouched, however late it arrives']
+const items=Array.from({length:30},(_,i)=>({id:`a${i+1}`,leading:String(i+1),title:`${texts[i%5]} (${i+1})`,group:areas[i%5],
+  tag:['Settled','Assumption','Open'][i%3],tone:['ok','warn','info'][i%3]}))
+const five=new URLSearchParams(location.search).get('scale')==='5'
+
+mountQuestions(document.getElementById('app'),five?{
+  title:'Do the assumptions hold?',storageKey:'triage-kit-questions-scale',items,comment:true,
+  columns:['','Assumption','Area','Status','Answer'],
+  decisions:[
+    {id:'must',label:'Must have',keys:['1'],kbd:'1',tone:'ok'},
+    {id:'should',label:'Should have',keys:['2'],kbd:'2',tone:'info'},
+    {id:'later',label:'Can wait',keys:['3'],kbd:'3',tone:'muted'},
+    {id:'wrong',label:'Wrong',keys:['4'],kbd:'4',tone:'bad',comment:true},
+    {id:'unsure',label:'Unsure',keys:['5'],kbd:'5',tone:'warn',comment:true}],
+  help:{summary:'Keys',lines:['↑ ↓ move · ⇧↑ ⇧↓ extend · ⌘A all','← → choose · ↵ apply · 1–5 answer directly · U undo','C comment · Esc back · Ctrl+← Ctrl+→ queue']},
+}:{
+  title:'What goes to the reviewer?',storageKey:'triage-kit-questions',items,
+  columns:['','Assumption','Area','Status','Choice'],
+  decisions:[
+    {id:'send',label:'Send',keys:['1'],kbd:'1',tone:'ok'},
+    {id:'skip',label:'Leave out',keys:['2'],kbd:'2',tone:'muted'}],
+  actions:[{label:'Copy the chosen ids',primary:true,run:api=>api.toast(Object.entries(api.decisions).filter(([,d])=>d==='send').map(([id])=>id).join(', ')||'Nothing chosen yet')}],
+  help:{summary:'Keys',lines:['↑ ↓ move · ⇧↑ ⇧↓ extend · ⌘A all','← → choose · ↵ apply · 1 send · 2 leave out · U undo','Ctrl+← Ctrl+→ queue']},
+})
+</script>
+</body>
+</html>

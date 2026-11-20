@@ -1,0 +1,3 @@
+/* An app's own look: plain selectors, no !important. Wins whether loaded before or after list.css. */
+.mail .tk-row { height: 30px; }
+.mail { --tk-accent: #db2777; }

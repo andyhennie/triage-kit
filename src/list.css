@@ -1,0 +1,96 @@
+/* triage-kit list styles. Framework-free: render this markup from any stack.
+ *
+ *   <div class="tk-head"><span>Sender</span><span>Subject</span><span>Date</span></div>
+ *   <div class="tk-list" role="listbox" aria-label="…" aria-multiselectable="true"
+ *        tabindex="0" aria-activedescendant="row-1">
+ *     <div class="tk-row" id="row-1" role="option" aria-selected="true" data-current>
+ *       <span class="tk-cell">…</span> <span class="tk-cell">…</span>
+ *       <span class="tk-cell tk-num">…</span>
+ *     </div>
+ *   </div>
+ *
+ * Rows are one line; cells hold text or inline elements (no controls) and truncate. Every rule is
+ * inside :where(), so it has zero specificity and any app selector wins.
+ *
+ * Restyle by setting variables on any ancestor (e.g. `.ledger { --tk-gap: 12px }`).
+ * Defaults are the fallbacks below; colours read the app's shadcn-style tokens first
+ * (--background, --foreground, --muted-foreground, --accent, --selection,
+ * --selection-edge), so its palette and dark mode carry over.
+ *
+ *   --tk-row-height 28px      --tk-row-pad-x 20px     --tk-gap 16px
+ *   --tk-columns minmax(0, 20%) minmax(0, 1fr) fit-content(30%)
+ *   --tk-font-size 13px       --tk-head-font-size 11px
+ *   --tk-canvas --tk-text --tk-muted --tk-border --tk-hover --tk-selection --tk-accent
+ *   --tk-focus-ring 1px solid <accent> (cursor row while the list has keyboard focus)
+ */
+
+:where(.tk-list) {
+  overflow: auto;
+  min-height: 0;
+  background: var(--tk-canvas, var(--background, #fff));
+  color: var(--tk-text, var(--foreground, #18181b));
+  font-size: var(--tk-font-size, 13px);
+  outline-offset: -2px;
+}
+/* Keyboard focus: the selected rows keep their look; the cursor row gets a thin ring
+   (--tk-focus-ring, set to none to drop it), and an empty list rings itself. */
+:where(.tk-list:focus-visible) { outline: none; }
+:where(.tk-list:focus-visible .tk-row[data-current]) {
+  outline: var(--tk-focus-ring, 1px solid var(--tk-accent, var(--selection-edge, #1147bb)));
+  outline-offset: -1px;
+}
+:where(.tk-list:focus-visible:not(:has(.tk-row))) {
+  outline: var(--tk-focus-ring, 1px solid var(--tk-accent, var(--selection-edge, #1147bb)));
+  outline-offset: -1px;
+}
+
+:where(.tk-row, .tk-head) {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: var(--tk-columns, minmax(0, 20%) minmax(0, 1fr) fit-content(30%));
+  gap: var(--tk-gap, 16px);
+  align-items: center;
+  padding: 0 var(--tk-row-pad-x, 20px);
+  border-bottom: 1px solid var(--tk-border, var(--accent, #f4f4f5));
+}
+:where(.tk-row) {
+  height: var(--tk-row-height, 28px);
+  cursor: default;
+  user-select: none;
+}
+:where(.tk-row:hover) { background: var(--tk-hover, var(--accent, #f4f4f5)); }
+:where(.tk-row[aria-selected="true"]) {
+  background: var(--tk-selection, var(--selection, #e8eefd));
+  box-shadow: inset 3px 0 var(--tk-accent, var(--selection-edge, #1147bb));
+}
+
+/* Optional header row on the same grid. */
+:where(.tk-head) {
+  padding-block: 5px;
+  color: var(--tk-muted, var(--muted-foreground, #71717a));
+  font-size: var(--tk-head-font-size, 11px);
+  font-weight: 600;
+}
+
+:where(.tk-cell, .tk-head > *) {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  line-height: normal;
+}
+:where(.tk-cell br) { display: none; }
+:where(.tk-muted) { color: var(--tk-muted, var(--muted-foreground, #71717a)); }
+:where(.tk-num) { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Optional column resize (columns.js): a handle on the right edge of a header cell. */
+:where(.tk-head > *) { position: relative; }
+:where(.tk-resize) { box-sizing: border-box; position: absolute; top: 0; bottom: 0; right: 0; width: 9px; border-right: 1px solid var(--border, #e4e4e7); cursor: col-resize; touch-action: none; }
+:where(.tk-resize:hover, .tk-head[data-resizing] .tk-resize) { border-right: 2px solid var(--tk-accent, var(--selection-edge, #1147bb)); }
+:where(.tk-head[data-resizing]) { cursor: col-resize; user-select: none; }
+
+/* Touch and narrow screens: a 44 px row target, even when the app sets a smaller height. */
+@media (pointer: coarse), (max-width: 700px) {
+  :where(.tk-row) { height: auto; min-height: max(44px, var(--tk-row-height, 28px)); }
+}

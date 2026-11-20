@@ -1,0 +1,14 @@
+/* A bookkeeping composition: eight fixed columns, 12 px text, small uppercase headers. */
+.ledger {
+  --tk-columns: 110px 80px 92px 90px 180px 150px 76px 100px;
+  --tk-gap: 12px;
+  --tk-font-size: 12px;
+  --tk-head-font-size: 9px;
+}
+.ledger .tk-head { text-transform: uppercase; letter-spacing: .36px; }
+.ledger .tk-head > :nth-last-child(-n+2) { text-align: right; }
+.ledger .party { font-weight: 500; }
+.ledger .status, .ledger .date { color: var(--muted-foreground, #71717a); }
+.ledger .status::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: currentColor; }
+.ledger .proposal { color: #3f6212; }
+.ledger .date, .ledger .amount { text-align: right; font-variant-numeric: tabular-nums; }

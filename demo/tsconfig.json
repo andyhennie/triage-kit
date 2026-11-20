@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/components/triage/*": [
+        "../registry/triage/*"
+      ],
+      "@/*": [
+        "./src/*"
+      ],
+      "react": [
+        "./node_modules/@types/react"
+      ],
+      "react/*": [
+        "./node_modules/@types/react/*"
+      ],
+      "clsx": [
+        "./node_modules/clsx"
+      ],
+      "tailwind-merge": [
+        "./node_modules/tailwind-merge"
+      ]
+    }
+  },
+  "include": [
+    "src",
+    "../registry"
+  ]
+}

@@ -1,13 +1,65 @@
 {
   "name": "triage-kit",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Keyboard-first triage lists: selection, key routing and batch/undo, with no dependencies.",
   "license": "MIT",
   "type": "module",
   "exports": {
-    ".": { "types": "./src/index.d.ts", "import": "./src/index.js" }
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    },
+    "./react": {
+      "types": "./src/react.d.ts",
+      "import": "./src/react.js"
+    },
+    "./list.css": "./src/list.css",
+    "./workbench": {
+      "types": "./src/workbench.d.ts",
+      "import": "./src/workbench.js"
+    },
+    "./workbench.css": "./src/workbench.css",
+    "./questions": {
+      "types": "./src/questions.d.ts",
+      "import": "./src/questions.js"
+    },
+    "./questions.css": "./src/questions.css",
+    "./columns": {
+      "types": "./src/columns.d.ts",
+      "import": "./src/columns.js"
+    },
+    "./compare": {
+      "types": "./src/compare.d.ts",
+      "import": "./src/compare.js"
+    },
+    "./compare.css": "./src/compare.css"
   },
-  "files": ["src"],
-  "scripts": { "test": "node --test \"test/*.test.js\" && sh scripts/check-public.sh" },
-  "keywords": ["triage", "keyboard", "listbox", "selection", "undo"]
+  "files": [
+    "src",
+    "registry",
+    "public/r"
+  ],
+  "scripts": {
+    "test": "node --test \"test/*.test.js\" && sh scripts/check-public.sh"
+  },
+  "keywords": [
+    "triage",
+    "keyboard",
+    "listbox",
+    "selection",
+    "undo"
+  ],
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "happy-dom": "21.0.4",
+    "react": "19.2.1",
+    "react-dom": "19.2.1"
+  }
 }

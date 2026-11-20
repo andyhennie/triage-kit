@@ -1,0 +1,131 @@
+/* Styles for mountQuestions (questions.js). Page frame and row colours come from
+   workbench.css and list.css; here rows grow with their text and carry the answer buttons.
+   Restyle with the --tk-* variables and the --qs-* tone colours; column widths come from
+   the config (columnWidths) and the user's own dragging. Rows are listbox options; their buttons are pointer shortcuts for
+   the keys and are not tab stops. */
+@import "./workbench.css";
+
+.questions {
+  --tk-columns: var(--qs-columns, 32px minmax(0, 1fr) 150px 84px) var(--qs-decisions-width, max-content);
+  /* The cursor row is shown by its background and bar; no ring around it. */
+  --tk-focus-ring: none;
+  --qs-ok: #2f7a4d; --qs-ok-bg: #e3f1e8;
+  --qs-info: #35608a; --qs-info-bg: #e2ecf5;
+  --qs-warn: #76601e; --qs-warn-bg: #f3ecd3;
+  --qs-bad: #a8402f; --qs-bad-bg: #f8e5e1;
+  --qs-muted: #71717a; --qs-muted-bg: #f0f0f1;
+}
+.questions [data-tone="ok"] { --qs-tone: var(--qs-ok); --qs-tone-bg: var(--qs-ok-bg); }
+.questions [data-tone="info"] { --qs-tone: var(--qs-info); --qs-tone-bg: var(--qs-info-bg); }
+.questions [data-tone="warn"] { --qs-tone: var(--qs-warn); --qs-tone-bg: var(--qs-warn-bg); }
+.questions [data-tone="bad"] { --qs-tone: var(--qs-bad); --qs-tone-bg: var(--qs-bad-bg); }
+.questions [data-tone="muted"] { --qs-tone: var(--qs-muted); --qs-tone-bg: var(--qs-muted-bg); }
+
+.questions > .tk-list { flex: 1; }
+/* The header is always one row: the tools keep their width, the tabs scroll sideways and the title is cut when they do not fit. */
+.questions .tk-header { justify-content: flex-start; padding-block: 6px; flex-wrap: nowrap; white-space: nowrap; }
+.questions .tk-header > * { flex: none; }
+.questions .tk-header > strong { flex: 0 4 auto; min-width: 3ch; overflow: hidden; text-overflow: ellipsis; }
+.questions .tk-header > nav { flex: 0 1 auto; min-width: min(96px, 30%); flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.questions .qs-tools { margin-left: auto; flex-wrap: nowrap; }
+.questions button { cursor: pointer; }
+/* Queue tabs are quiet text; the open one is filled. */
+.questions .tk-header nav { gap: 2px; }
+.questions .tk-header nav button { display: inline-flex; align-items: center; gap: 6px; border-color: transparent; background: none; padding: 3px 9px; color: var(--tk-muted, var(--muted-foreground, #71717a)); }
+.questions .tk-header nav button:hover { background: var(--tk-hover, var(--accent, #f4f4f5)); }
+.questions .tk-header nav button[aria-pressed="true"] { background: var(--tk-selection, var(--selection, #e8eefd)); color: inherit; font-weight: 600; }
+.questions .qs-count { font-size: 12px; font-weight: 400; font-variant-numeric: tabular-nums; }
+/* The rest of the actions and the help, behind one button. */
+.questions .qs-menu { position: relative; }
+.questions .qs-menu summary { list-style: none; cursor: pointer; padding: 3px 9px; border: 1px solid var(--border, #e4e4e7); border-radius: 7px; line-height: 1.5; }
+.questions .qs-menu summary::-webkit-details-marker { display: none; }
+.questions .qs-menu[open] summary, .questions .qs-menu summary:hover { background: var(--tk-hover, var(--accent, #f4f4f5)); }
+.questions .qs-menu-panel { position: absolute; z-index: 5; top: calc(100% + 4px); right: 0; width: max-content; max-width: min(360px, 90vw); padding: 4px; background: var(--tk-canvas, var(--background, #fff)); border: 1px solid var(--border, #e4e4e7); border-radius: 9px; box-shadow: 0 8px 24px rgb(0 0 0 / .12); }
+.questions .qs-menu-panel button { display: block; width: 100%; border-color: transparent; text-align: left; }
+.questions .qs-menu-panel button:hover { background: var(--tk-hover, var(--accent, #f4f4f5)); }
+.questions .qs-help { padding: 8px 10px 6px; color: var(--tk-muted, var(--muted-foreground, #71717a)); font-size: 12px; }
+.questions .qs-menu-panel button + .qs-help, .questions .qs-menu-panel button ~ .qs-help { margin-top: 4px; border-top: 1px solid var(--tk-border, var(--accent, #f4f4f5)); }
+.questions .qs-help strong { font-weight: 600; }
+.questions .qs-help p { margin: 4px 0 0; }
+
+/* Mobile first. A row is a small card: number and question, then area and status, then the
+   answer buttons as touch targets. From 960px it becomes the table with a header and columns. */
+.questions .tk-head { display: none; }
+.questions .tk-row {
+  height: auto; min-height: 0; padding: 10px var(--tk-row-pad-x, 16px); row-gap: 6px;
+  grid-template-columns: 24px minmax(0, max-content) minmax(0, 1fr);
+  grid-template-areas: "n title title" ". group tag" ". answers answers";
+}
+.questions .tk-row > * { align-self: start; }
+.questions .qs-leading { grid-area: n; line-height: 1.45; }
+.questions .qs-title { grid-area: title; min-width: 0; line-height: 1.45; overflow-wrap: anywhere; font-size: 15px; }
+.questions .qs-title > span { display: block; }
+.questions .qs-note { font-size: 13px; margin-top: 2px; }
+.questions .qs-group, .questions .qs-tag { font-size: 12px; }
+.questions .qs-group { grid-area: group; }
+.questions .qs-tag { grid-area: tag; color: var(--qs-tone, var(--tk-muted, #71717a)); }
+.questions .qs-decisions { grid-area: answers; display: flex; flex-wrap: wrap; gap: 6px; }
+.questions .qs-decisions button { flex: 1 1 auto; min-height: 40px; padding: 6px 12px; font-size: 14px; white-space: nowrap; }
+.questions .qs-decisions kbd { display: none; }
+.questions .qs-decisions button[aria-pressed="true"] { background: var(--qs-tone-bg, #f0f0f1); border-color: var(--qs-tone, currentColor); color: var(--qs-tone, inherit); font-weight: 600; }
+/* The marked answer (what Enter applies) is a filled button, not a ring. It wins over hover
+   and over the tint of an answer the row already has. */
+/* The row's proposal (QuestionItem.proposal): what Enter applies until ← → move the mark. */
+.questions .qs-decisions button[data-proposed] { border-style: dashed; border-color: var(--qs-tone, currentColor); }
+.questions .qs-decisions button[data-marked], .questions .qs-decisions button[data-marked]:hover { background: var(--tk-accent, var(--selection-edge, #1147bb)); border-color: var(--tk-accent, var(--selection-edge, #1147bb)); color: var(--tk-canvas, var(--background, #fff)); }
+.questions .qs-decisions button[data-marked] kbd { color: inherit; opacity: .75; }
+/* 16px in the comment field so iOS does not zoom in when it gets focus. */
+.questions .qs-comment { display: block; width: 100%; margin-top: 6px; font: inherit; font-size: 16px; color: inherit; background: var(--tk-canvas, #fff); border: 1px solid var(--border, #e4e4e7); border-radius: 7px; padding: 6px 9px; resize: vertical; user-select: text; }
+.questions :is(button, textarea, summary):focus-visible { outline: 2px solid var(--tk-accent, #1147bb); outline-offset: 1px; }
+/* On a phone the open tab says where you are; the title comes back when there is room. */
+@media (max-width: 759px) {
+  .questions .tk-header > strong { display: none; }
+}
+@media (max-width: 559px) {
+  .questions .tk-header nav button { padding: 6px 9px; }
+}
+@media (hover: hover) {
+  .questions .qs-decisions button:hover { background: var(--tk-hover, #f4f4f5); }
+}
+
+/* Tablet: close to one row. Question with area and status under it on the left, the
+   buttons on the right. Many answers wrap inside their half instead of squeezing the text. */
+@media (min-width: 560px) {
+  .questions .tk-row {
+    padding-block: 8px; row-gap: 2px; align-items: center;
+    grid-template-columns: 24px minmax(0, max-content) minmax(0, 1fr) fit-content(50%);
+    grid-template-areas: "n title title answers" ". group tag answers";
+  }
+  .questions .qs-decisions { align-self: center; justify-content: flex-end; }
+  .questions .qs-decisions button { flex: none; min-height: 34px; }
+}
+/* Four or more answers need more room before they fit beside the question; until then they go under it. */
+@media (min-width: 560px) and (max-width: 759px) {
+  .questions .tk-row:has(.qs-decisions > :nth-child(4)) {
+    row-gap: 6px; grid-template-columns: 24px minmax(0, max-content) minmax(0, 1fr);
+    grid-template-areas: "n title title" ". group tag" ". answers answers";
+  }
+  .questions .tk-row:has(.qs-decisions > :nth-child(4)) .qs-decisions { justify-content: flex-start; }
+}
+
+/* Desktop: the table. Rows grow with the question; one line when it fits. */
+@media (min-width: 960px) {
+  .questions .tk-head { display: grid; }
+  .questions .tk-row {
+    min-height: 32px; padding-block: 3px; row-gap: 0;
+    grid-template-columns: var(--tk-columns); grid-template-areas: none;
+  }
+  .questions .tk-row > * { grid-area: auto; align-self: auto; }
+  .questions .qs-title { font-size: inherit; line-height: 1.4; }
+  .questions .qs-decisions { flex-wrap: nowrap; gap: 4px; }
+  .questions .qs-decisions button { min-height: 0; padding: 2px 8px; font-size: 12px; }
+  .questions .qs-decisions kbd { display: inline; }
+  /* Key hints only on the cursor row; hidden ones keep their width so the column stays aligned. */
+  .questions .tk-row:not([data-current]) .qs-decisions kbd { visibility: hidden; }
+  .questions .qs-comment { font-size: 13px; }
+}
+/* A touch screen wide enough for the table still gets buttons a finger can hit. */
+@media (min-width: 960px) and (pointer: coarse) {
+  .questions .qs-decisions button { min-height: 32px; padding-inline: 10px; font-size: 13px; }
+  .questions .qs-decisions kbd { display: none; }
+}

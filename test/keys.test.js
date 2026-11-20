@@ -45,6 +45,7 @@ test('queues, domain keys and approve list are opt-in',()=>{
   assert.equal(act('Enter',{ctrlKey:true},{approveList:true}),'approveList','Ctrl+↵ where Super is the window manager')
   assert.equal(act('Enter',{metaKey:true,...on('INPUT')},{approveList:true}),'approveList','also from a search field')
   assert.equal(act('Enter',{metaKey:true,...on('TEXTAREA')},{approveList:true}),null)
+  assert.equal(act('Enter',{metaKey:false},{approveList:true}),'inspect','an explicit false modifier is not ⌘')
   assert.equal(act('Enter',{},{enter:'approve'}),'approve','a follower may bind Enter to its main action')
   assert.equal(act('o',{},{open:false}),null)
 })

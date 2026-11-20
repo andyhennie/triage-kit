@@ -1,0 +1,35 @@
+/* Styles for mountCompare (compare.js): one column per item, one line per field. Colours use
+   the --tk-* variables and the app's tokens; --tk-good marks the best value, --tk-warn the
+   distance to it and cells that differ. Zero specificity throughout. */
+:where(.tk-compare) {
+  --tk-good: #0f766e; --tk-warn: #b45309; --tk-span: var(--tk-good); --tk-gap-span: #a1a1aa;
+  --tk-shade: rgb(0 0 0 / .06);
+  display: grid; grid-template-columns: var(--tk-compare-label, 140px) repeat(var(--tk-compare-n, 2), minmax(0, 1fr));
+  font-size: var(--tk-font-size, 13px); color: var(--tk-text, var(--foreground, #18181b));
+}
+:where(.tk-compare-row) { display: contents; }
+:where(.tk-compare-label, .tk-compare-cell) {
+  padding: 8px var(--tk-gap, 16px) 8px 0; border-bottom: 1px solid var(--tk-border, var(--accent, #f4f4f5));
+  min-width: 0; overflow-wrap: anywhere;
+}
+:where(.tk-compare-label) { color: var(--tk-muted, var(--muted-foreground, #71717a)); padding-left: var(--tk-row-pad-x, 20px); }
+:where(.tk-compare-cell) { display: flex; flex-direction: column; gap: 2px; }
+:where(.tk-compare-head .tk-compare-cell strong) { font-size: 1.15em; font-weight: 600; }
+:where(.tk-compare-value) { font-variant-numeric: tabular-nums; }
+:where(.tk-compare-cell[data-best] .tk-compare-value) { color: var(--tk-good); font-weight: 600; }
+:where(.tk-compare-cell[data-differs] .tk-compare-value) { font-weight: 600; }
+:where(.tk-compare-delta) { color: var(--tk-warn); font-size: .9em; font-variant-numeric: tabular-nums; }
+:where(.tk-compare-track) { position: relative; display: block; height: 14px; margin: 0 0 16px; background: var(--tk-border, #f4f4f5); border-radius: 3px; }
+:where(.tk-compare-span, .tk-compare-shade) { position: absolute; top: 0; bottom: 0; }
+:where(.tk-compare-shade) { background: var(--tk-shade); }
+:where(.tk-compare-span) { background: var(--tk-span); border-radius: 2px; }
+:where(.tk-compare-span[data-kind="gap"]) {
+  background: repeating-linear-gradient(135deg, var(--tk-gap-span) 0 2px, transparent 2px 5px);
+}
+:where(.tk-compare-tick) {
+  position: absolute; top: 100%; transform: translateX(-50%); padding-top: 1px; white-space: nowrap;
+  font-size: 10px; color: var(--tk-muted, var(--muted-foreground, #71717a)); font-variant-numeric: tabular-nums;
+}
+@media (prefers-color-scheme: dark) {
+  :where(.tk-compare) { --tk-good: #2dd4bf; --tk-warn: #f59e0b; --tk-shade: rgb(255 255 255 / .06); }
+}

@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nyhetsbrev-triage</title>
+<!-- triage-kit's question list (mountQuestions), one row per sender. Served by
+     examples/newsletters-server.mjs, which forwards a short allowlist of mail backend calls;
+     the mail backend owns Gmail, Jev and every side effect. -->
+<link rel="stylesheet" href="../src/questions.css">
+<style>
+  body { margin: 0; font: 14px Inter, ui-sans-serif, system-ui, sans-serif; }
+  /* Split view: the senders on the left, the selected sender's email on the right. */
+  .split { display: grid; grid-template-columns: minmax(360px, 42%) minmax(0, 1fr); height: 100dvh; }
+  #app { min-width: 0; min-height: 0; display: flex; flex-direction: column; border-right: 1px solid #e4e4e7; }
+  #app > .questions { height: 100%; }
+  /* The answer buttons live in the pane, not on every row. */
+  #app .questions { --qs-decisions-width: 0px; }
+  #app .qs-decisions, #app .tk-head > span:last-child { display: none; }
+  #pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  #pane header { padding: 12px 20px 10px; border-bottom: 1px solid #e4e4e7; }
+  #pane h2 { margin: 0 0 4px; font-size: 16px; }
+  #pane .proposal { font-weight: 600; }
+  #pane .hint { color: #71717a; font-size: 12px; margin-top: 4px; }
+  #pane .emails > .hint { padding: 6px 20px 2px; margin: 0; }
+  #pane .keys { color: #71717a; font-size: 12px; margin-top: 6px; }
+  #pane .keys button { font: inherit; padding: 2px 8px; margin: 2px 4px 2px 0; border: 1px solid #d4d4d8; border-radius: 6px; background: none; color: inherit; cursor: pointer; }
+  #pane .keys button[data-proposed] { border-style: dashed; border-color: currentColor; color: #18181b; }
+  #pane .keys button[data-marked] { border: 1px solid #1147bb; background: #1147bb; color: #fff; font-weight: 600; }
+  /* One line per sender, as in an inbox; the full text is in the pane. */
+  #app .qs-title > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #app .tk-row { align-items: center; }
+  /* The tabs need the header row more than a cut-off title does. */
+  #app .tk-header > strong { display: none; }
+  /* Only queues with something in them, and the one that is open. */
+  #app .tk-header nav button[data-count="0"]:not([aria-pressed="true"]) { display: none; }
+  #pane { background: #fff; color: #18181b; }
+  /* A short strip of the sender's emails; the email itself gets the room. */
+  #pane .emails { max-height: 132px; flex: none; overflow: auto; border-bottom: 1px solid #e4e4e7; }
+  #pane .emails button span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #pane .emails button { display: flex; width: 100%; gap: 12px; padding: 5px 20px; border: 0; background: none; text-align: left; font: inherit; font-size: 13px; color: inherit; cursor: pointer; }
+  #pane .emails button[aria-pressed="true"] { background: #e8eefd; }
+  #pane .emails .date { margin-left: auto; color: #71717a; white-space: nowrap; }
+  #pane .emails .prop { color: #71717a; white-space: nowrap; font-size: 12px; }
+  #pane iframe { flex: 1; width: 100%; border: 0; background: #fff; }
+  #offers-link { position: fixed; right: 16px; bottom: 10px; z-index: 5; padding: 5px 10px; border: 1px solid #d4d4d8; border-radius: 8px; background: #fff; color: #18181b; font-size: 13px; text-decoration: none; }
+  #pane .empty { padding: 20px; color: #71717a; }
+  @media (max-width: 900px) { .split { grid-template-columns: 1fr; grid-template-rows: 55dvh 45dvh; } #app { border-right: 0; border-bottom: 1px solid #e4e4e7; } }
+  dialog { border: 1px solid #d4d4d8; border-radius: 8px; max-width: min(520px, calc(100vw - 32px)); font: 14px Inter, ui-sans-serif, system-ui, sans-serif; }
+  dialog h2 { margin: 0 0 6px; font-size: 15px; }
+  dialog ul { padding-left: 18px; }
+  dialog .buttons { display: flex; gap: 8px; justify-content: flex-end; }
+</style>
+</head>
+<body>
+<a id="offers-link" href="offers.html">Tilbud per kategori ›</a>
+<div class="split"><div id="app"></div><aside id="pane" aria-label="Valgt avsender"><p class="empty">Laster …</p></aside></div>
+<dialog id="confirm" aria-labelledby="confirm-title">
+  <form method="dialog">
+    <h2 id="confirm-title">Avmelde?</h2>
+    <p>Dette sender en avmeldingsforespørsel til avsenderne under, og e-postene arkiveres. Det kan ikke angres.</p>
+    <ul id="confirm-list"></ul>
+    <div class="buttons"><button value="cancel" autofocus>Avbryt</button><button value="ok">Ja, avmeld <kbd>J</kbd></button></div>
+  </form>
+</dialog>
+<script type="module">
+import {mountQuestions} from '../src/questions.js'
+import {ACTIONS, inList, proposal, fromQueues, groups as groupItems, groupProposal} from './newsletters-model.js'
+
+// A decision waits this long before the mail backend gets it; U undoes it meanwhile (?pending=ms for tests).
+const PENDING_MS = Number(new URLSearchParams(location.search).get('pending')) || 8000
+const TONES = {archive: 'muted', kuppis: 'warn', unsubscribe: 'bad', reply: 'info', task: 'info', keep: 'ok'}
+const ORDER = ['archive', 'kuppis', 'unsubscribe', 'keep', 'task', 'reply']
+const dialog = document.getElementById('confirm')
+
+let sourceId = null, emails = new Map(), groups = new Map(), decisions = {}, asking = new Set(), seen = {}, api = null
+const pending = new Map(), sent = new Set()
+
+const call = async (path, body) => {
+  const res = await fetch(path, body ? {method: 'POST', keepalive: true, headers: {'content-type': 'application/json'}, body: JSON.stringify(body)} : {})
+  const json = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(json.error || `E-posttjenesten svarte ${res.status}`)
+  return json
+}
+const toast = text => api?.toast(text)
+const label = a => a ? ACTIONS[a].label : ''
+
+// One row per sender. Its id carries the newest email, so new mail from a sender decided
+// earlier comes back to decide again.
+function rows() {
+  return [...groups.values()].map(g => {
+    const gp = groupProposal(g.items.map(i => proposal(i, decisions)))
+    const thinking = g.items.some(i => asking.has(i.id))
+    const fromJev = g.items.some(i => !fromQueues(i))
+    return {id: g.id, leading: String(g.items.length), title: `${g.name} · ${g.domain} — ${g.items[0].title}`,
+      group: gp.proposal ? `Jev${fromJev ? ' (spurt)' : ''} ${gp.agree}/${gp.total}` : thinking ? 'Jev tenker …' : 'Ingen forslag',
+      tag: label(gp.proposal), tone: TONES[gp.proposal], proposal: gp.proposal ?? undefined}
+  })
+}
+let queued = false
+const refresh = () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; api.setItems(rows()); if (paneId) showPaneHeader() }) }
+// Re-draw the pane's header only, keeping the email that is open.
+const showPaneHeader = () => showPane(paneId, paneEmail?.id, true)
+
+async function load() {
+  const state = await call('/api/state')
+  sourceId = state.source.id
+  emails = new Map(state.items.filter(inList).map(i => [i.id, i]))
+  groups = new Map(groupItems([...emails.values()]).map(g => [`${g.domain}:${g.items[0].id}`, {...g, id: `${g.domain}:${g.items[0].id}`}]))
+  api = mountQuestions(document.getElementById('app'), {
+    title: 'Nyhetsbrev', storageKey: 'newsletters:v2', items: rows(),
+    columns: ['', 'Avsender — siste emne', 'Jev', 'Forslag', ''], columnWidths: [32, null, 96, 96],
+    decisions: ORDER.map(a => ({id: a, label: ACTIONS[a].label + (ACTIONS[a].confirm ? '…' : ''), keys: [ACTIONS[a].key], kbd: ACTIONS[a].key.toUpperCase(), tone: TONES[a]})),
+    labels: {open: 'Å avgjøre', all: 'Alle', list: 'Avsendere', empty: 'Ingenting her', undo: 'Angre', undone: 'Angret',
+      nothingToUndo: 'Ingenting å angre', unchanged: 'Ingen endring', resize: 'Dra for å endre bredde, dobbeltklikk for standard',
+      more: 'Mer', selected: (n, total) => `${n} valgt · ${total} avsendere`},
+    help: {summary: 'Taster', lines: ['↑ ↓ flytt · ⇧↑ ⇧↓ utvid · ⌘A alle', '↵ godta Jevs forslag (stiplet) · ← → velg annet · U angre',
+      'A arkiver · K Kuppis/Tilbud · X avmeld (spør først) · B behold · T oppgave · R svar (åpner Gmail)',
+      `Et valg sendes til e-posttjenesten etter ${PENDING_MS / 1000} s; etter det kan arkivering ikke angres her.`]},
+    onChange: changed,
+    onCurrent: id => showPane(id),
+  })
+  seen = api.decisions
+  askJev()
+}
+
+// The question list owns decisions and U; here each new decision is carried out and each
+// undone one is called back while it is still waiting.
+async function changed(list) {
+  const now = list.decisions, before = seen
+  seen = now
+  for (const id of Object.keys(before)) if (now[id] !== before[id]) {
+    if (pending.has(id)) { clearTimeout(pending.get(id)); pending.delete(id) }
+    else if (sent.has(id)) toast(`${groups.get(id)?.domain}: allerede sendt til e-posttjenesten – kan ikke angres her`)
+  }
+  const added = Object.entries(now).filter(([id, a]) => before[id] !== a && groups.has(id) && !sent.has(id))
+  const unsub = added.filter(([, a]) => a === 'unsubscribe')
+  if (unsub.length && !(await confirmUnsubscribe(unsub.map(([id]) => groups.get(id))))) { api.undo(); toast('Avmelding avbrutt – ingenting sendt'); return }
+  for (const [id, a] of added) {
+    if (a === 'keep') continue
+    if (a === 'reply') { window.open(groups.get(id).items[0].gmail_url, '_blank', 'noopener'); toast('Svar: tråden er åpnet i Gmail, ingenting er sendt'); continue }
+    pending.set(id, setTimeout(() => { pending.delete(id); send(id, a) }, PENDING_MS))
+  }
+  if (added.some(([, a]) => !['keep', 'reply'].includes(a))) toast(`Sendes om ${PENDING_MS / 1000} s – U angrer`)
+}
+
+function confirmUnsubscribe(senders) {
+  document.getElementById('confirm-list').replaceChildren(...senders.map(g =>
+    Object.assign(document.createElement('li'), {textContent: `${g.name} · ${g.domain} (${g.items.length} e-post${g.items.length === 1 ? '' : 'er'})`})))
+  dialog.showModal()
+  const yes = e => { if (e.key.toLowerCase() === 'j' && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); dialog.close('ok') } }
+  dialog.addEventListener('keydown', yes)
+  return new Promise(resolve => dialog.addEventListener('close', () => {
+    dialog.removeEventListener('keydown', yes)
+    document.querySelector('.tk-list')?.focus()
+    resolve(dialog.returnValue === 'ok')
+  }, {once: true}))
+}
+
+const KIND = {archive: 'archive', kuppis: 'archive_kuppis', unsubscribe: 'archive_unsubscribe'}
+async function send(id, action) {
+  const g = groups.get(id), selections = g.items.map(i => ({id: i.id, version: i.version}))
+  sent.add(id)
+  try {
+    if (action === 'task') {
+      const r = await call('/api/rad_tasks', {source_id: sourceId, selections})
+      if (r.items?.length) await call('/api/background_tasks', {source_id: sourceId, kind: 'archive', request_key: crypto.randomUUID(), selections: r.items.map(e => ({id: e.id, version: e.version}))})
+      toast(r.unresolved?.length ? `${g.domain}: ${r.unresolved.length} ikke lagt i oppgave – ${r.unresolved[0].reason}` : `${g.domain}: lagt i Rad Tasks og arkivert`)
+    } else {
+      // Archiving what Jev put in Unsubscribe tells Jev "keep this sender"; the backend learns from it.
+      const queue = action === 'archive' && g.items.every(i => i.jev?.queues?.includes('jev_unsubscribe')) ? 'jev_unsubscribe' : undefined
+      await call('/api/background_tasks', {source_id: sourceId, kind: KIND[action], origin_queue: queue, request_key: crypto.randomUUID(), selections})
+      toast(`Sendt til e-posttjenesten: ${label(action)} · ${g.domain} (${g.items.length})`)
+    }
+  } catch (e) { sent.delete(id); toast(`${g.domain}: ${e.message} – ingenting endret, prøv igjen`) }
+}
+
+// Jev's next-step Choice, only for emails its existing answers leave open. Cached answers
+// first (free), then new questions a few at a time.
+async function askJev() {
+  const open = [...emails.values()].filter(i => !fromQueues(i) && !decisions[i.id])
+  open.forEach(i => asking.add(i.id))
+  refresh()
+  const work = async (i, post) => {
+    try {
+      const {decision} = await call(`/api/items/${i.id}/jev_decision?source_id=${sourceId}`, post ? {} : undefined)
+      if (decision) decisions[i.id] = decision
+    } catch (e) { if (post) toast(`Jev: ${e.message}`) }
+    if (post || decisions[i.id]) asking.delete(i.id)
+    refresh()
+  }
+  await Promise.all(open.map(i => work(i, false)))
+  const queue = open.filter(i => !decisions[i.id])
+  await Promise.all(Array.from({length: 3}, async () => { while (queue.length) await work(queue.shift(), true) }))
+}
+
+// The right-hand pane: the sender, Jev's proposal (what Enter does), the keys as buttons,
+// its emails, and one email as the mail backend shows it, in a sandbox with no scripts.
+const pane = document.getElementById('pane'), previews = new Map()
+let paneId = null, paneEmail = null
+const el = (tag, props = {}, ...kids) => { const n = Object.assign(document.createElement(tag), props); n.append(...kids.filter(k => k != null)); return n }
+// headerOnly: Jev answers arrived; the open email stays as it is.
+function showPane(id, emailId = null, headerOnly = false) {
+  const g = id && groups.get(id)
+  if (!g) { paneId = id; pane.replaceChildren(el('p', {className: 'empty', textContent: 'Ingen avsender valgt.'})); return }
+  const sameEmail = paneId === id && paneEmail?.id === (emailId ?? paneEmail?.id)
+  paneId = id
+  const gp = groupProposal(g.items.map(i => proposal(i, decisions)))
+  paneEmail = g.items.find(i => i.id === emailId) ?? g.items[0]
+  const chosen = marked()
+  const keys = el('div', {className: 'keys'}, ...ORDER.map(a => {
+    const b = el('button', {type: 'button', textContent: `${ACTIONS[a].label}${ACTIONS[a].confirm ? '…' : ''} ${ACTIONS[a].key.toUpperCase()}`})
+    if (a === gp.proposal) b.dataset.proposed = ''
+    // The mark ← → move; Enter applies it. It starts on Jev's proposal.
+    if (a === chosen) { b.dataset.marked = ''; b.textContent += ' ↵' }
+    b.onclick = () => { const list = document.querySelector('.tk-list'); list.focus(); list.dispatchEvent(new KeyboardEvent('keydown', {key: ACTIONS[a].key, bubbles: true, cancelable: true})) }
+    return b
+  }))
+  // Plain sentences: what Jev thinks, and what the buttons apply to.
+  const n = g.items.length, many = n === 1 ? 'e-posten' : `alle ${n} e-postene`
+  const thinks = gp.proposal
+    ? `Jev foreslår «${label(gp.proposal)}»${n > 1 ? (gp.agree < gp.total ? ` – for ${gp.agree} av ${n} e-poster` : ` for alle ${n} e-postene`) : ''}.`
+    : g.items.some(i => asking.has(i.id)) ? 'Jev tenker …' : 'Jev har ikke noe forslag.'
+  const head = el('header', {}, el('h2', {textContent: `${g.name} · ${g.domain}`}),
+    el('div', {className: 'proposal', textContent: thinks}),
+    el('div', {className: 'hint', textContent: `Velg hva som skal skje med ${many} fra avsenderen. ↵ gjør det blå, ← → bytter, eller trykk bokstaven.`}),
+    keys)
+  const emails = el('div', {className: 'emails'}, el('div', {className: 'hint', textContent: `E-postene fra avsenderen, med Jevs forslag for hver. Klikk for å vise den under.`}), ...g.items.map(i => {
+    const b = el('button', {type: 'button'}, el('span', {textContent: i.title}), el('span', {className: 'prop', textContent: label(proposal(i, decisions))}), el('span', {className: 'date', textContent: i.received_at ? new Date(i.received_at).toLocaleDateString('nb-NO', {day: 'numeric', month: 'short'}) : ''}))
+    b.setAttribute('aria-pressed', String(i === paneEmail))
+    b.onclick = () => showPane(id, i.id)
+    return b
+  }))
+  const old = pane.querySelector('iframe')
+  if (headerOnly && sameEmail && old) { pane.replaceChildren(head, emails, old); return }
+  const frame = el('iframe', {title: 'E-post'})
+  frame.setAttribute('sandbox', '')   // no scripts, no navigation from inside
+  frame.referrerPolicy = 'no-referrer'
+  pane.replaceChildren(head, emails, frame)
+  const email = paneEmail
+  if (!previews.has(email.id)) previews.set(email.id, call(`/api/items/${email.id}/preview?source_id=${sourceId}`).catch(e => ({error: e.message})))
+  previews.get(email.id).then(data => {
+    if (paneId !== id || paneEmail !== email) return
+    const html = data.messages?.at(-1)?.body_html
+    const text = data.error || data.messages?.at(-1)?.body_text || data.body_text || data.snippet || ''
+    frame.srcdoc = html || `<pre style="white-space:pre-wrap;font:14px system-ui;padding:16px">${text.replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'})[c])}</pre>`
+  })
+  // The next sender's email is fetched ahead, so ↓ shows it at once.
+  const ids = [...groups.keys()], next = groups.get(ids[ids.indexOf(id) + 1])
+  if (next && !previews.has(next.items[0].id)) previews.set(next.items[0].id, call(`/api/items/${next.items[0].id}/preview?source_id=${sourceId}`).catch(e => ({error: e.message})))
+}
+
+// The answer the list has marked on the cursor row (its own buttons are hidden here).
+function marked() {
+  const buttons = [...document.querySelectorAll('.tk-row[data-current] .qs-decisions button')]
+  const at = buttons.findIndex(b => b.hasAttribute('data-marked'))
+  return at < 0 ? null : ORDER[at]
+}
+// After the list has handled ← → (it listens closer to the list), show the new mark.
+document.addEventListener('keydown', e => { if (['ArrowLeft', 'ArrowRight'].includes(e.key) && paneId) showPaneHeader() })
+
+// Leaving with decisions still waiting sends them: the key press was the decision.
+addEventListener('pagehide', () => {
+  for (const [id, timer] of pending) { clearTimeout(timer); send(id, seen[id]) }
+})
+
+load().catch(e => { document.getElementById('app').textContent = `Kunne ikke laste fra e-posttjenesten: ${e.message}` })
+</script>
+</body>
+</html>

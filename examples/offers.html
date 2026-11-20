@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tilbud</title>
+<!-- Prototype: the offers the mail backend has read out of store emails, by kind of product across
+     stores, one product at a time. Served by examples/newsletters-server.mjs. -->
+<style>
+  body { margin: 0; font: 15px Inter, ui-sans-serif, system-ui, sans-serif; color: #18181b; background: #fff; }
+  .page { display: flex; flex-direction: column; height: 100dvh; outline: none; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 10px 20px; border-bottom: 1px solid #e4e4e7; }
+  header a { color: #71717a; font-size: 13px; text-decoration: none; margin-right: 6px; }
+  nav { display: flex; flex-wrap: wrap; gap: 4px; }
+  nav button { font: inherit; font-size: 14px; padding: 4px 10px; border: 1px solid transparent; border-radius: 7px; background: none; color: #71717a; cursor: pointer; }
+  nav button[aria-pressed="true"] { background: #e8eefd; color: #18181b; font-weight: 600; }
+  #who { margin-left: auto; }
+  nav.sub:empty { display: none; }
+  nav.sub { padding: 6px 20px; border-bottom: 1px solid #e4e4e7; min-height: 30px; }
+  nav.sub button { font-size: 13px; padding: 2px 9px; }
+  nav button .n { font-size: 12px; font-weight: 400; margin-left: 5px; }
+  /* Picture and facts as one unit in the middle: the price sits right beside the product. */
+  main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 560px) minmax(260px, 400px); justify-content: center; gap: 32px; padding: 24px 28px; align-items: center; }
+  .picture { height: min(100%, 560px); min-height: 0; display: flex; align-items: center; justify-content: center; background: #fafafa; border-radius: 12px; overflow: hidden; }
+  .picture img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .picture .none { color: #a1a1aa; }
+  h1 { margin: 0 0 10px; font-size: 26px; line-height: 1.2; }
+  .price { font-size: 32px; font-weight: 700; }
+  .price.none { font-size: 16px; font-weight: 400; color: #71717a; }
+  .before { color: #71717a; text-decoration: line-through; margin-left: 10px; }
+  .discount { display: inline-block; margin-left: 10px; padding: 2px 8px; border-radius: 6px; background: #fdecc8; font-weight: 600; font-size: 14px; }
+  .stores { margin: 16px 0 0; padding: 0; list-style: none; font-size: 14px; }
+  .stores li { display: flex; gap: 12px; padding: 5px 0; border-top: 1px solid #f0f0f1; }
+  .stores .store { flex: 1; } .stores .note { color: #71717a; font-size: 12px; }
+  .actions { display: flex; gap: 8px; margin-top: 20px; }
+  .actions button { font: inherit; padding: 8px 14px; border: 1px solid #d4d4d8; border-radius: 8px; background: #fff; cursor: pointer; }
+  .open { display: inline-block; margin-top: 14px; color: #1147bb; font-size: 14px; text-decoration: none; }
+  .open:hover { text-decoration: underline; }
+  .actions button.primary { background: #1147bb; border-color: #1147bb; color: #fff; font-weight: 600; }
+  kbd { font: 11px ui-monospace, monospace; border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; margin-left: 6px; opacity: .7; }
+  footer { display: flex; gap: 16px; padding: 8px 20px; border-top: 1px solid #e4e4e7; color: #71717a; font-size: 13px; min-height: 20px; }
+  #status { flex: 1; }
+  .empty { grid-column: 1 / -1; text-align: center; color: #71717a; }
+  @media (max-width: 760px) { main { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; padding: 14px; gap: 14px; } h1 { font-size: 20px; } .price { font-size: 26px; } }
+</style>
+</head>
+<body>
+<div class="page" id="page" tabindex="0">
+  <header><a href="newsletters.html">‹ Avsendere</a><nav id="tabs" aria-label="Kategorier"></nav><nav id="who" aria-label="Hvem det er til"></nav></header>
+  <nav id="activities" class="sub" aria-label="Aktiviteter"></nav>
+  <nav id="kinds" class="sub" aria-label="Underkategorier"></nav>
+  <main id="card"><p class="empty">Laster tilbud …</p></main>
+  <footer><span id="status" role="status"></span><span id="progress"></span><span>↵ / → / høyreklikk neste · L lagre · O åpne · ← / U angre · 1–8 kategori · ⇧↑↓ aktivitet · ↑ ↓ underkategori · F hvem</span></footer>
+</div>
+<script type="module">
+import {routeKey} from '../src/index.js'
+import {CATEGORIES, KINDS, ACTIVITIES, WHO, forWho, products as merge} from './offers-model.js'
+
+const page = document.getElementById('page'), card = document.getElementById('card'), tabs = document.getElementById('tabs')
+const status = text => { document.getElementById('status').textContent = text }
+const el = (tag, props = {}, ...kids) => { const n = Object.assign(document.createElement(tag), props); n.append(...kids.filter(k => k != null && k !== false)); return n }
+let sourceId = null, offers = [], category = null, kind = null, activity = null, history = [], busy = false
+let who = 'me'
+try { who = localStorage.getItem('offers:who') in WHO ? localStorage.getItem('offers:who') : 'me' } catch {}
+
+const call = async (path, body) => {
+  const res = await fetch(path, body ? {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)} : {})
+  const json = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(json.error || `E-posttjenesten svarte ${res.status}`)
+  return json
+}
+
+const all = () => merge(offers)
+// Everything is narrowed by who it is for; within a category by activity (cross-country,
+// running …) and then by kind (skis, jackets …): Sport › Langrenn › Ski.
+const mine = () => all().filter(p => forWho(p, who))
+const inCat = cat => mine().filter(p => p.category === cat)
+const inAct = (cat, a = activity) => inCat(cat).filter(p => !a || p.activity === a)
+const left = (cat, k = null, a = activity) => inAct(cat, a).filter(p => p.state === 'new' && (!k || p.kind === k))
+const cats = () => Object.keys(CATEGORIES).filter(c => inCat(c).length)
+const activities = () => category ? Object.keys(ACTIVITIES).filter(a => inCat(category).some(p => p.activity === a)) : []
+const kinds = () => category ? Object.keys(KINDS).filter(k => inAct(category).some(p => p.kind === k)) : []
+const chip = (text, n, pressed, onclick, title) => { const b = el('button', {type: 'button', title: title || ''}, text, el('span', {className: 'n', textContent: String(n)})); b.setAttribute('aria-pressed', String(pressed)); b.hidden = n === 0 && !pressed; b.onclick = () => { onclick(); render(); page.focus() }; return b }
+
+function render() {
+  const shown = cats()
+  if (!shown.includes(category)) category = shown.find(c => left(c).length) ?? shown[0] ?? null
+  if (!activities().includes(activity)) activity = null
+  if (!kinds().includes(kind)) kind = null
+  tabs.replaceChildren(...shown.map((c, n) => chip(CATEGORIES[c], left(c, null, null).length, c === category, () => { category = c; kind = null; activity = null }, `Tast ${n + 1}`)))
+  document.getElementById('who').replaceChildren(...Object.entries(WHO).map(([w, {label}]) =>
+    chip(label, all().filter(p => forWho(p, w) && p.state === 'new').length, w === who, () => setWho(w), 'Tast F bytter')))
+  // Only worth a row when the category spans more than one activity.
+  document.getElementById('activities').replaceChildren(...(activities().length > 1 ? [chip('Alle aktiviteter', left(category, null, null).length, activity === null, () => { activity = null; kind = null }, 'Shift+↑↓'),
+    ...activities().map(a => chip(ACTIVITIES[a], left(category, null, a).length, a === activity, () => { activity = a; kind = null }, 'Shift+↑↓'))] : []))
+  document.getElementById('kinds').replaceChildren(...(category ? [chip('Alt', left(category).length, kind === null, () => { kind = null }),
+    ...kinds().map(k => chip(KINDS[k], left(category, k).length, k === kind, () => { kind = k }))] : []))
+  const queue = category ? left(category, kind) : [], p = queue[0], total = category ? inAct(category).filter(x => !kind || x.kind === kind).length : 0
+  const where = [CATEGORIES[category], activity && ACTIVITIES[activity], kind && KINDS[kind], WHO[who].label.toLowerCase()].filter(Boolean).join(' · ')
+  document.getElementById('progress').textContent = category ? `${where}: ${total - queue.length + (p ? 1 : 0)} av ${total}` : ''
+  if (!p) { card.replaceChildren(el('p', {className: 'empty', textContent: !offers.length ? 'E-posttjenesten har ikke lest ut noen tilbud ennå.' : category ? `Ingen flere tilbud i ${where}.` : `Ingen tilbud ${WHO[who].label.toLowerCase()}.`})); return }
+  const best = p.offers[0], image = p.image && el('img', {src: p.image, alt: p.title, referrerPolicy: 'no-referrer'})
+  if (image) image.onerror = () => image.replaceWith(el('span', {className: 'none', textContent: 'Bildet kunne ikke lastes'}))
+  const save = el('button', {type: 'button'}, 'Lagre', el('kbd', {textContent: 'L'})), next = el('button', {type: 'button', className: 'primary'}, 'Neste', el('kbd', {textContent: '↵'}))
+  save.onclick = () => decide('saved'); next.onclick = () => decide('done')
+  card.replaceChildren(
+    el('div', {className: 'picture'}, image || el('span', {className: 'none', textContent: 'Ingen bilde i e-posten'})),
+    el('div', {},
+      el('h1', {textContent: p.title}),
+      el('div', {}, el('span', {className: best.price ? 'price' : 'price none', textContent: best.price || 'Ingen pris i e-posten'}), best.before && el('span', {className: 'before', textContent: best.before}), best.discount && el('span', {className: 'discount', textContent: best.discount})),
+      el('ul', {className: 'stores'}, ...p.offers.map(o => el('li', {}, el('span', {className: 'store', textContent: o.store}), el('span', {textContent: o.price || ''}), o.note && el('span', {className: 'note', textContent: o.note})))),
+      el('div', {className: 'actions'}, next, save),
+      productUrl(p.title, best.store) && el('a', {className: 'open', href: productUrl(p.title, best.store), target: '_blank', rel: 'noopener noreferrer', referrerPolicy: 'no-referrer', textContent: `Åpne hos ${storeSite(best.store)} ↗`, title: 'Tast O'})))
+  // The next product's picture is fetched ahead, so "next" is instant.
+  if (queue[1]?.image) new Image().src = queue[1].image
+}
+
+function setWho(w) { who = w; try { localStorage.setItem('offers:who', w) } catch {} }
+// ↑ ↓ step the sub-category chips, "Alt" included.
+function stepActivity(delta) { const list = [null, ...activities()]; activity = list[Math.max(0, Math.min(list.length - 1, list.indexOf(activity) + delta))]; kind = null }
+function stepKind(delta) { const list = [null, ...kinds()]; kind = list[Math.max(0, Math.min(list.length - 1, list.indexOf(kind) + delta))] }
+
+// One decision covers every store's copy of the product. The mail backend keeps it on the email's
+// offer (the same state its own offer triage uses): saved = Kuppis, done = skipped.
+async function write(members, state) {
+  const by = new Map()
+  for (const o of members) by.set(o.item_id, [...(by.get(o.item_id) || []), o.index])
+  for (const [itemId, indexes] of by) await call(`/api/items/${itemId}/links/state`, {source_id: sourceId, indexes, state})
+}
+async function decide(state) {
+  const p = category && left(category, kind)[0]
+  if (!p || busy) return
+  const members = p.offers.filter(o => (o.state || 'new') === 'new')
+  members.forEach(o => { o.state = state })   // optimistic: the next card shows at once
+  history.push(members); render(); busy = true
+  try { await write(members, state); status(state === 'saved' ? `Lagret: ${p.title}` : '') }
+  catch (e) { members.forEach(o => { o.state = 'new' }); history.pop(); render(); status(`Ikke lagret: ${e.message}`) }
+  finally { busy = false }
+}
+async function undo() {
+  const members = history.pop()
+  if (!members || busy) return status(members ? '' : 'Ingenting å angre')
+  const previous = members.map(o => o.state)
+  members.forEach(o => { o.state = 'new' }); const back = all().find(p => p.offers.includes(members[0])); if (back) { category = back.category; if (kind && back.kind !== kind) kind = null; if (activity && back.activity !== activity) activity = null; if (!forWho(back, who)) setWho('all') }
+  render(); busy = true
+  try { await write(members, 'new'); status('Angret') }
+  catch (e) { members.forEach((o, n) => { o.state = previous[n] }); history.push(members); render(); status(`Ikke angret: ${e.message}`) }
+  finally { busy = false }
+}
+
+// The emails only link through the stores' click trackers, which are never followed. This
+// asks DuckDuckGo for the product on the store's own site and goes straight to the first hit
+// (the leading backslash); only the public product name and store leave this page.
+// The search is limited to the store's own site: its registrable domain (dell.com, not the
+// mail sender comms.dell.com, whose pages are trackers). Mail from a mail service such as
+// iCloud has no store site, so it gets no link.
+const MAIL_SERVICES = ['icloud.com', 'gmail.com', 'outlook.com', 'hotmail.com', 'privaterelay.appleid.com']
+function storeSite(store = '') {
+  const parts = store.toLowerCase().split('.').filter(Boolean)
+  const site = parts.slice(['co', 'com'].includes(parts.at(-2)) && parts.length > 2 ? -3 : -2).join('.')
+  return MAIL_SERVICES.includes(site) || MAIL_SERVICES.includes(store) ? null : site
+}
+function productUrl(title, store) {
+  const site = storeSite(store)
+  return site && `https://duckduckgo.com/?q=${encodeURIComponent(`\\${title.replace(/\([^)]*\)/g, '').trim()} site:${site}`)}`
+}
+
+const KEYS = {o: 'open', O: 'open', f: 'who', F: 'who', l: 'save', L: 'save', ArrowRight: 'next', ' ': 'next', n: 'next', N: 'next', ArrowLeft: 'undo'}
+for (let n = 1; n <= 8; n++) KEYS[n] = `cat:${n - 1}`
+// A right click on the product is "next", like → and Enter.
+card.addEventListener('contextmenu', e => { e.preventDefault(); decide('done') })
+page.addEventListener('keydown', e => {
+  const r = routeKey(e, {keys: KEYS, enter: 'next', open: false})
+  if (!r || r.action === 'list' && r.arg === 'all') return
+  e.preventDefault()
+  // ↑ ↓ step the kinds; Shift+↑ ↓ the activities.
+  if (r.action === 'list') { r.arg.startsWith('extend:') ? stepActivity(Number(r.arg.slice(7))) : stepKind(Number(r.arg.slice(5))); render(); return }
+  if (e.repeat) return
+  if (r.action === 'who') { const order = Object.keys(WHO); setWho(order[(order.indexOf(who) + 1) % order.length]); render(); return }
+  if (r.action === 'save') decide('saved')
+  else if (r.action === 'next') decide('done')
+  else if (r.action === 'undo') undo()
+  else if (r.action === 'open') { const a = card.querySelector('a.open'); if (a) window.open(a.href, '_blank', 'noopener,noreferrer') }
+  else if (r.action.startsWith('cat:')) { const c = cats()[Number(r.action.slice(4))]; if (c) { category = c; kind = null; activity = null; render() } }
+})
+
+call('/api/offers').then(data => { sourceId = data.source_id; offers = data.offers; render(); page.focus() })
+  .catch(e => { card.replaceChildren(el('p', {className: 'empty', textContent: `Kunne ikke laste fra e-posttjenesten: ${e.message}`})) })
+</script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>triage-kit · plain list</title>
+<!-- One package, two compositions: ?look=mail (default) or ?look=ledger. Each look is a few
+     lines of its own CSS on top of list.css. ?override=before|after loads an app stylesheet
+     before or after list.css, to show that list.css never wins over app CSS. -->
+<script>
+  const q=new URLSearchParams(location.search),look=q.get('look')==='ledger'?'ledger':'mail',order=q.get('override')
+  const link=href=>`<link rel="stylesheet" href="${href}">`
+  document.write((order==='before'?link('override.css'):'')+link('../src/list.css')+link(`look-${look}.css`)+(order==='after'?link('override.css'):''))
+  document.documentElement.dataset.look=look
+</script>
+<style>
+  body { margin: 0; font: 14px Inter, ui-sans-serif, system-ui, sans-serif; color: #18181b; background: #fff; }
+  .page { display: flex; flex-direction: column; height: 100dvh; }
+  .page h1 { margin: 0; padding: 10px 20px; font-size: 16px; font-weight: 500; }
+</style>
+</head>
+<body>
+<main class="page" id="page">
+  <h1 id="heading"></h1>
+  <div class="tk-head" id="head" aria-hidden="true"></div>
+  <div class="tk-list" id="list" role="listbox" aria-multiselectable="true" tabindex="0"></div>
+</main>
+<script type="module">
+import {reconcile, selectOne, selectRange, applyListKey, routeKey} from '../src/index.js'
+
+const long='A very long subject line that keeps going well past the width of any reasonable column so it has to be truncated with an ellipsis'
+const looks={
+  mail:{title:'Inbox',head:['Sender','Subject','Date'],cells:i=>[
+    ['sender',i%4?`Sender ${i+1}`:`Someone With An Extraordinarily Long Display Name ${i+1}`],
+    ['subject',i%3?`Message ${i+1}`:`${long} ${i+1}`],
+    ['date',i<4?`0${9-i}:${10+i*7} AM`:`Nov ${7-Math.floor(i/8)}`]]},
+  ledger:{title:'Posted',head:['Party','Description','Receipt','Proposal','Account','VAT','Date','Amount'],cells:i=>[
+    ['party',['(unknown)','Example Supplier Ltd with a long name','Acme AS','Northwind AS'][i%4]],
+    ['',i%3?'Transfer':'Top-up'],
+    ['status','Not required'],
+    ['proposal','Posted · pending'],
+    ['',i%5?'1920:10003 Bank':'2930:10001 Salaries payable to employees'],
+    ['','No VAT'],
+    ['date',`${28-i}. sep.`],
+    ['amount',(i%2?'+':'-')+((i+1)*1234.5).toLocaleString('nb-NO',{minimumFractionDigits:2})]]},
+}
+const look=looks[document.documentElement.dataset.look]
+document.getElementById('page').classList.add(document.documentElement.dataset.look)
+document.getElementById('heading').textContent=look.title
+const list=document.getElementById('list'),head=document.getElementById('head')
+list.setAttribute('aria-label',look.title)
+for(const label of look.head)head.append(Object.assign(document.createElement('span'),{textContent:label}))
+
+const ids=Array.from({length:60},(_,i)=>`r${i+1}`)
+ids.forEach((id,i)=>{
+  const row=document.createElement('div')
+  Object.assign(row,{id:`row-${id}`,className:'tk-row'})
+  row.setAttribute('role','option')
+  row.dataset.id=id
+  for(const [cls,text] of look.cells(i))row.append(Object.assign(document.createElement('span'),{className:`tk-cell ${cls}`.trim(),textContent:text}))
+  list.append(row)
+})
+let state=reconcile({selection:new Set(),current:null,selectionAnchor:null},ids)
+
+function render(){
+  for(const row of list.children){
+    row.setAttribute('aria-selected',String(state.selection.has(row.dataset.id)))
+    row.toggleAttribute('data-current',row.dataset.id===state.current)
+  }
+  list.setAttribute('aria-activedescendant',`row-${state.current}`)
+  document.getElementById(`row-${state.current}`)?.scrollIntoView({block:'nearest'})
+}
+
+list.addEventListener('keydown',e=>{
+  const route=routeKey(e)
+  if(route?.action!=='list')return
+  e.preventDefault()
+  state=applyListKey(state,ids,route.arg)
+  render()
+})
+list.addEventListener('mousedown',e=>{
+  const row=e.target.closest('.tk-row')
+  // Ctrl/⌘-click belongs to the context menu or the browser, not the selection.
+  if(!row||e.button!==0||e.ctrlKey||e.metaKey)return
+  state=e.shiftKey?selectRange(state,ids,row.dataset.id)??selectOne(state,row.dataset.id):selectOne(state,row.dataset.id)
+  render()
+})
+render()
+list.focus()
+</script>
+</body>
+</html>

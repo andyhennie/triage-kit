@@ -1,0 +1,223 @@
+// A list of questions (or assumptions, findings: lines of text that each need an answer)
+// on the core functions, without React. The whole text and the answer buttons are in the
+// row itself; there is no inspector. Queues are tabs, a key answers every selected row as
+// one batch, answered rows leave the "to decide" queue so the cursor moves on, and U
+// undoes. Everything an app changes is in the config (see questions.d.ts); state lives in
+// storage.
+import {reconcile,selectOne,selectRange,applyListKey,afterAction,routeKey,batchFor,undoOf,HISTORY_LIMIT} from './index.js'
+import {mountColumnResize,columnTemplate} from './columns.js'
+
+function h(tag,props={},...kids){
+  const node=document.createElement(tag)
+  for(const [key,value] of Object.entries(props)){
+    if(value==null||value===false)continue
+    if(key==='class')node.className=value
+    else if(key==='text')node.textContent=value
+    else if(key.startsWith('on'))node.addEventListener(key.slice(2),value)
+    else node.setAttribute(key,value===true?'':value)
+  }
+  node.append(...kids.flat().filter(kid=>kid!=null&&kid!==false))
+  return node
+}
+
+let mounts=0
+const noSelection={selection:new Set(),current:null,selectionAnchor:null}
+
+export function mountQuestions(root,config){
+  const {decisions,storageKey,comment=false,actions=[],help,onChange,onCurrent}=config
+  let {title,items}=config
+  const columns=config.columns??['','Question','Group','Status','Answer']
+  // The four cells before the answer buttons; null is the question, which takes the rest.
+  const columnWidths=config.columnWidths??[32,null,150,84]
+  const L={open:'To decide',all:'All',list:'Questions',empty:'Nothing here',comment:'Comment',
+    resize:'Drag to resize, double-click to reset',more:'More',undo:'Undo',undone:'Undone',nothingToUndo:'Nothing to undo',unchanged:'No change',
+    selected:(n,total)=>`${n} selected · ${total}`,...config.labels}
+  let storage=config.storage
+  if(storage===undefined)try{storage=globalThis.localStorage}catch{storage=null}
+  const prefix=`questions-${++mounts}`,rowId=id=>`${prefix}-row-${encodeURIComponent(String(id))}`
+  let byId=new Map(items.map(item=>[item.id,item]))
+  const decisionOf=new Map(decisions.map(d=>[d.id,d]))
+
+  // data: decisions and comments by item id, and the batches U can still undo.
+  let data={d:{},c:{},h:[]}
+  try{data={...data,...JSON.parse(storage?.getItem(storageKey))}}catch{}
+  const save=()=>{try{storage?.setItem(storageKey,JSON.stringify(data))}catch{}}
+
+  const queues=[{id:'open',label:L.open,has:item=>!data.d[item.id]},
+    ...decisions.map(d=>({id:d.id,label:d.label,tone:d.tone,has:item=>data.d[item.id]===d.id})),
+    {id:'all',label:L.all,has:()=>true}]
+  // editing: the row whose comment is open. It stays in the list until the comment is left,
+  // even when its answer has moved it out of this queue.
+  // The cursor row always has one answer button marked, and Enter applies it. option is where
+  // ← → last put the mark, as {id, index}; column is that index, carried to the next rows.
+  let queue='open',status='',editing=null,option=null,column=0
+  const ids=()=>{const has=queues.find(q=>q.id===queue).has;return items.filter(item=>has(item)||item.id===editing).map(item=>item.id)}
+  let sel=reconcile(noSelection,ids())
+
+  // ← → walk the answer buttons of the cursor row, Enter and Space apply, C opens the
+  // comment; an app cannot rebind them.
+  const keys={}
+  for(const d of decisions)for(const key of d.keys??[])keys[key]=`decide:${d.id}`
+  Object.assign(keys,{ArrowLeft:'option:-1',ArrowRight:'option:1',' ':'apply',c:'comment',C:'comment'})
+
+  const tabs=h('nav',{'aria-label':'Queues'})
+  const list=h('div',{class:'tk-list',role:'listbox',tabindex:'0','aria-label':L.list,'aria-multiselectable':'true'})
+  const count=h('span'),statusLine=h('div',{class:'tk-status',role:'status','aria-live':'polite','aria-atomic':'true'})
+  const undoButton=h('button',{type:'button',title:'U','aria-keyshortcuts':'u',onclick:()=>{undo();render();list.focus()}},L.undo,h('kbd',{text:'U'}))
+  // One header row: primary actions stay visible, the other actions and the help sit in a menu.
+  const actionButton=action=>h('button',{type:'button',text:action.label,onclick:()=>{menu?.removeAttribute('open');action.run(api)}})
+  const rest=actions.filter(action=>!action.primary)
+  const menu=rest.length||help?h('details',{class:'qs-menu'},
+    h('summary',{'aria-label':L.more,title:L.more,text:'⋯'}),
+    h('div',{class:'qs-menu-panel'},rest.map(actionButton),
+      help&&h('div',{class:'qs-help'},h('strong',{text:help.summary}),help.lines.map(text=>h('p',{text}))))):null
+  const tools=h('div',{class:'tk-actions qs-tools'},actions.filter(action=>action.primary).map(actionButton),menu)
+  const head=h('div',{class:'tk-head','aria-hidden':'true'},columns.map(text=>h('span',{text})))
+  const page=h('main',{class:'triage-kit-workbench questions'},
+    h('header',{class:'tk-header'},h('strong',{text:title}),tabs,tools),
+    head,
+    list,
+    h('footer',{class:'tk-footer'},count,h('div',{class:'tk-actions'},undoButton)),
+    statusLine)
+
+  // Close the open comment; a row that no longer belongs to this queue leaves and hands the cursor on.
+  function stopEditing(){
+    if(editing==null)return
+    const before=ids(),id=editing
+    editing=null
+    if(!ids().includes(id))sel=afterAction({ids:before,...sel,affected:new Set([id]),left:[id]})
+  }
+  function setQueue(id){editing=null;queue=id;sel=reconcile(noSelection,ids())}
+
+  // One press is one batch for the selection; rows that leave this queue hand the cursor on.
+  function decide(id){
+    const before=ids(),rows=items.map(item=>({id:item.id,decision:data.d[item.id]}))
+    const batch=batchFor(rows,sel.selection,id)
+    if(!batch.items.length||batch.tooMany){status=L.unchanged;return}
+    for(const item of batch.items)data.d[item.id]=item.decision
+    data.h=[...data.h,{items:batch.items}].slice(-HISTORY_LIMIT)
+    // An answer that asks for a comment keeps its one row in place with the comment open.
+    editing=comment&&decisionOf.get(id).comment&&batch.items.length===1?batch.items[0].id:null
+    const shown=new Set(ids())
+    sel=afterAction({ids:before,...sel,affected:new Set(batch.items.map(item=>item.id)),left:before.filter(row=>!shown.has(row))})
+    status=`${decisionOf.get(id).label} · ${batch.items.length}`
+    changed()
+  }
+  function undo(){
+    const batch=data.h.at(-1)
+    if(!batch){status=L.nothingToUndo;return}
+    for(const item of undoOf(batch))item.decision==null?delete data.d[item.id]:data.d[item.id]=item.decision
+    data.h=data.h.slice(0,-1)
+    editing=null
+    sel=reconcile(sel,ids())
+    status=`${L.undone} · ${batch.items.length}`
+    changed()
+  }
+  function changed(){save();onChange?.(api)}
+  // Where the mark is on the cursor row: where ← → put it, else the row's own answer, else
+  // its proposal, else the column it was in on the previous row.
+  function markedIndex(){
+    if(sel.current==null)return -1
+    if(option?.id===sel.current)return option.index
+    const own=decisions.findIndex(d=>d.id===data.d[sel.current])
+    if(own>=0)return own
+    const proposed=decisions.findIndex(d=>d.id===byId.get(sel.current)?.proposal)
+    return proposed<0?column:proposed
+  }
+  const marked=()=>decisions[markedIndex()]??null
+  function stepOption(delta){
+    if(sel.current==null)return
+    column=Math.max(0,Math.min(decisions.length-1,markedIndex()+delta))
+    option={id:sel.current,index:column}
+  }
+  const focusAfter=()=>(editing==null?list:list.querySelector('.qs-comment')??list).focus()
+
+  function row(id){
+    const item=byId.get(id),note=data.c[id]
+    // The buttons repeat the keys for the pointer; they stay out of the tab order so the
+    // listbox keeps one tab stop.
+    const buttons=h('span',{class:'qs-decisions'},decisions.map(d=>h('button',{type:'button',tabindex:'-1',title:d.long??d.label,
+      'data-tone':d.tone,'aria-pressed':String(data.d[id]===d.id),'data-marked':id===sel.current&&marked()===d,'data-proposed':item.proposal===d.id,
+      onclick:()=>{stopEditing();if(!sel.selection.has(id))sel=selectOne(sel,id);decide(d.id);render();focusAfter()}},
+      d.label,d.kbd&&h('kbd',{text:d.kbd}))))
+    const field=comment&&editing===id?h('textarea',{class:'qs-comment',rows:'2',placeholder:L.comment,'aria-label':L.comment,
+      oninput:e=>{e.target.value?data.c[id]=e.target.value:delete data.c[id];changed()},
+      onkeydown:e=>{if(e.key==='Escape'){e.preventDefault();stopEditing();render();list.focus()}}}):null
+    if(field)field.value=note??''
+    return h('div',{id:rowId(id),class:'tk-row',role:'option','data-id':String(id),'aria-selected':String(sel.selection.has(id)),'data-current':id===sel.current},
+      h('span',{class:'tk-muted qs-leading',text:item.leading??''}),
+      h('span',{class:'qs-title'},h('span',{text:item.title}),field,!field&&note?h('span',{class:'qs-note tk-muted',text:note}):null),
+      h('span',{class:'tk-cell tk-muted qs-group',text:item.group??''}),
+      h('span',{class:'tk-cell qs-tag','data-tone':item.tone,text:item.tag??''}),
+      buttons)
+  }
+  function render(){
+    // data-count lets an app style or hide empty queues.
+    tabs.replaceChildren(...queues.map(q=>{const n=items.filter(q.has).length;return h('button',{type:'button','aria-pressed':String(q.id===queue),'data-tone':q.tone,'data-count':String(n),
+      onclick:()=>{setQueue(q.id);render();list.focus()}},q.label,h('span',{class:'qs-count',text:String(n)}))}))
+    const shown=ids()
+    list.replaceChildren(...(shown.length?shown.map(row):[h('p',{class:'tk-empty tk-muted',text:L.empty})]))
+    sel.current==null?list.removeAttribute('aria-activedescendant'):list.setAttribute('aria-activedescendant',rowId(sel.current))
+    document.getElementById(rowId(sel.current))?.scrollIntoView?.({block:'nearest'})
+    // Every row is its own grid: give the answer column one measured width so rows and header line up.
+    const width=list.querySelector('.qs-decisions')?.getBoundingClientRect?.().width
+    if(width)page.style.setProperty('--qs-decisions-width',`${Math.ceil(width)}px`)
+    count.textContent=L.selected(sel.selection.size,shown.length)
+    undoButton.disabled=!data.h.length
+    statusLine.textContent=status
+    if(sel.current!==shownCurrent){shownCurrent=sel.current;onCurrent?.(sel.current)}
+  }
+  let shownCurrent
+
+  // The menu closes on Escape and on a click outside it.
+  page.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&menu?.hasAttribute('open')){menu.removeAttribute('open');list.focus()}
+  })
+  page.addEventListener('mousedown',e=>{if(menu&&!menu.contains(e.target))menu.removeAttribute('open')})
+  page.addEventListener('keydown',e=>{
+    const route=routeKey(e,{queues:true,keys,open:false,enter:'apply'})
+    if(!route)return
+    e.preventDefault()
+    if(e.repeat&&!route.repeat)return
+    stopEditing()
+    if(route.action==='list')sel=applyListKey(sel,ids(),route.arg)
+    else if(route.action==='queue'){const at=queues.findIndex(q=>q.id===queue);setQueue(queues[Math.max(0,Math.min(queues.length-1,at+route.arg))].id)}
+    else if(route.action==='undo')undo()
+    else if(route.action.startsWith('option:'))stepOption(Number(route.action.slice(7)))
+    else if(route.action==='apply'){const d=marked();if(d)decide(d.id)}
+    else if(route.action==='comment'){if(comment&&sel.current!=null){sel=selectOne(sel,sel.current);editing=sel.current}}
+    else decide(route.action.slice('decide:'.length))
+    if(option?.id!==sel.current)option=null
+    render()
+    focusAfter()
+  })
+  list.addEventListener('mousedown',e=>{
+    const target=e.target.closest?.('.tk-row')
+    // Ctrl/⌘-click belongs to the context menu or the browser; buttons and the comment handle themselves.
+    if(!target||e.button!==0||e.ctrlKey||e.metaKey||e.target.closest('button,textarea'))return
+    const id=items.find(item=>String(item.id)===target.dataset.id).id
+    stopEditing()
+    if(!ids().includes(id)){render();return}
+    sel=e.shiftKey?selectRange(sel,ids(),id)??selectOne(sel,id):selectOne(sel,id)
+    render()
+  })
+
+  const api={
+    get decisions(){return {...data.d}},
+    get comments(){return {...data.c}},
+    rows:()=>items.map(item=>({...item,decision:data.d[item.id]??null,comment:data.c[item.id]??''})),
+    toast(text){status=text;statusLine.textContent=text},
+    reset(){data={d:{},c:{},h:[]};setQueue('open');status='';changed();render()},
+    undo(){undo();render()},
+    // New rows or proposals (answers that arrive later); decisions and the cursor carry over.
+    setItems(next){items=next;byId=new Map(items.map(item=>[item.id,item]));sel=reconcile(sel,ids());render()},
+  }
+  // Header handles drag the column widths; they are kept per list next to its answers.
+  const setColumns=template=>page.style.setProperty('--qs-columns',template)
+  if(config.resizable===false)setColumns(columnTemplate(columnWidths))
+  else mountColumnResize(head,{widths:columnWidths,storage,storageKey:`${storageKey}:columns`,apply:setColumns,label:L.resize})
+  root.replaceChildren(page)
+  render()
+  list.focus()
+  return api
+}

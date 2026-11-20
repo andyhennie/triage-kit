@@ -7,7 +7,7 @@ runtime dependencies, so it runs in any framework, in Node tests and in a
 `<script type="module">`.
 
 ```sh
-npm install github:andyhennie/triage-kit#v0.1.0
+npm install github:andyhennie/triage-kit#v0.2.1
 ```
 
 ## The model
@@ -85,6 +85,291 @@ but left to the caller in v0.1.
   `tabindex="0"` and `aria-activedescendant`; rows are `role="option"` with
   `aria-selected`. Buttons show their key in `<kbd>` and carry
   `aria-keyshortcuts`.
+
+## Styling without a framework
+
+`triage-kit/list.css` styles the listbox markup above from any stack (server
+templates, plain JS, React). It is optional and has no JavaScript.
+
+```html
+<link rel="stylesheet" href="…/triage-kit/src/list.css">
+<div class="tk-head"><span>Sender</span><span>Subject</span><span>Date</span></div>
+<div class="tk-list" role="listbox" aria-label="Inbox" aria-multiselectable="true"
+     tabindex="0" aria-activedescendant="row-42">
+  <div class="tk-row" id="row-42" role="option" aria-selected="true" data-current>
+    <span class="tk-cell">Sender</span>
+    <span class="tk-cell">Subject</span>
+    <span class="tk-cell tk-num tk-muted">8. nov.</span>
+  </div>
+</div>
+```
+
+Rows are one 28 px line (at least 44 px on touch and narrow screens): each
+`.tk-cell` holds text or inline elements and truncates with an ellipsis
+(`<br>` is hidden); rows are options, so no buttons, links or inputs inside
+them. Selected rows get a background and a 3 px bar; while the list has
+keyboard focus the cursor row also gets a thin ring (`--tk-focus-ring`). `.tk-head` is an optional header on the same grid.
+Every rule is inside `:where()`, so it has zero specificity and your own CSS
+wins whatever the load order.
+
+The look is a few variables, set on any ancestor. Colours read shadcn-style
+app tokens first, so an app's palette and dark mode carry over:
+
+| Variable | Default |
+|---|---|
+| `--tk-row-height` | `28px` |
+| `--tk-row-pad-x` / `--tk-gap` | `20px` / `16px` |
+| `--tk-columns` | `minmax(0, 20%) minmax(0, 1fr) fit-content(30%)` |
+| `--tk-font-size` / `--tk-head-font-size` | `13px` / `11px` |
+| `--tk-canvas` / `--tk-text` / `--tk-muted` | `--background` / `--foreground` / `--muted-foreground`, else `#fff` / `#18181b` / `#71717a` |
+| `--tk-border` / `--tk-hover` | `--accent`, else `#f4f4f5` |
+| `--tk-selection` / `--tk-accent` | `--selection` / `--selection-edge`, else `#e8eefd` / `#1147bb` |
+| `--tk-focus-ring` | `1px solid` accent, on the cursor row while the list has keyboard focus |
+
+A composition is its cells plus a few lines of CSS:
+
+```css
+.ledger { --tk-columns: 110px 80px 92px 90px 180px 150px 76px 100px; --tk-gap: 12px;
+          --tk-font-size: 12px; --tk-head-font-size: 9px; }
+.ledger .tk-head { text-transform: uppercase; letter-spacing: .36px; }
+```
+
+`examples/plain.html` shows two compositions on the core functions, without
+React: `?look=mail` and `?look=ledger` (`examples/look-*.css`). Serve the repo
+root (`python3 -m http.server`) and open it. `?override=before|after` loads
+`examples/override.css` on either side of `list.css`.
+
+## Compare
+
+`triage-kit/compare` shows the selected rows side by side: one column per item,
+one line per field, so what decides between them lines up. Show it when ↵
+(`inspect`) is pressed with more than one row selected, and the normal
+inspector otherwise. No framework, no dependencies.
+
+```js
+import {mountCompare} from 'triage-kit/compare'
+import 'triage-kit/compare.css'
+
+const view = mountCompare(pane, {
+  items: selected, title: o => o.name, formatDelta: d => `+${d} kr`,
+  fields: [
+    {label: 'Total', value: o => o.total, better: 'low'},      // best marked, others show +distance
+    {label: 'Board', value: o => o.board, differs: true},      // marked when the columns differ
+    {label: 'Out', spans: o => o.flights,                      // bars on one shared axis
+     axis: {min: 0, max: 24, ticks: [0, 6, 12, 18, 24], shade: [[0, 6], [22, 24]]}},
+  ],
+})
+view.update(otherSelection); view.destroy()
+```
+
+- `better: 'low' | 'high'` marks the best number and gives every other cell its
+  distance to it. Equal values, or a single item, mark nothing.
+- `differs: true` marks a line whose text is not the same in every column.
+- `spans` draws `{start, end, kind?, label?}` bars on a shared `axis`; `kind:
+  'gap'` is hatched (a layover, a wait), `shade` greys ranges such as night.
+- `compareRows(items, fields)` is the pure part, for React or any other renderer.
+- Look: `--tk-good` (best), `--tk-warn` (distance), `--tk-compare-label` (label
+  column width) and the usual `--tk-*` variables.
+
+`examples/compare.html` compares holiday offers: ⇧↓ selects two, ↵ compares,
+Esc goes back.
+
+## Questions
+
+`triage-kit/questions` is a ready list for lines of text that each need an
+answer: questions, assumptions, review findings. The whole text and the answer
+buttons are in the row; there is no inspector. It has no framework and no
+dependencies, and mounts from one config object.
+
+```js
+import {mountQuestions} from 'triage-kit/questions'
+import 'triage-kit/questions.css'       // or <link>; it imports workbench.css and list.css
+
+const api = mountQuestions(document.getElementById('app'), {
+  title: 'Do the assumptions hold?', storageKey: 'assumptions-v1', comment: true,
+  items: [{id: '1', leading: '1', title: 'One order can hold several reports', group: 'Orders', tag: 'Open', tone: 'info'}],
+  decisions: [
+    {id: 'yes',   label: 'Yes',   keys: ['1'], kbd: '1', tone: 'ok'},
+    {id: 'wrong', label: 'Wrong', keys: ['2'], kbd: '2', tone: 'bad', comment: true},
+  ],
+  actions: [{label: 'Export', primary: true, run: api => download(api.rows())}],
+})
+```
+
+- **Rows** grow with their text, so a question is never cut off. Each row has
+  one button per answer; the cursor row shows their keys. The buttons are
+  pointer shortcuts and not tab stops: the list stays one listbox.
+- **One header row**: title, queue tabs, the `primary` actions as buttons, and
+  a ⋯ menu with the other actions and the `help` text.
+- **Queues** are tabs with counts: "to decide", one per answer, and all.
+  Ctrl+← / Ctrl+→ step them.
+- **One answer button is always marked** on the cursor row. ← → move the mark
+  and Enter or Space applies it. The mark starts on the row's own answer, else
+  in the column it had on the previous row, so a run of the same answer is
+  Enter, Enter, Enter.
+- **An answer key** applies to every selected row as one batch (↑ ↓, ⇧↑ ⇧↓ and
+  ⌘A select). Answered rows leave "to decide", so the cursor moves on. U undoes
+  the latest batch, one per press.
+- **Comments** (`comment: true`): C opens the comment in the cursor row,
+  Esc returns to the list. An answer with `comment: true` keeps its row in
+  place with the comment open, so "wrong" can be explained at once. A saved
+  comment shows under its question.
+- **Proposals**: an item's `proposal` (a decision id) outlines that button on
+  every row and is what Enter applies until ← → move the mark.
+  `api.setItems(items)` swaps in new rows or proposals that arrived later,
+  keeping answers and the cursor; `api.undo()` is U from code.
+  `onCurrent(id)` is called when the cursor row changes, for a side pane.
+- **State** (answers, comments, undo history) is kept under `storageKey` in
+  `localStorage`, or in the `storage` you pass. `api.rows()` returns every item
+  with its answer and comment for export.
+- **Column widths**: `columnWidths` gives the default px widths of the four
+  cells before the buttons (`null` is the question, which takes the rest). The
+  user drags the header edges to change them and double-clicks to reset; the
+  widths are saved next to the answers. `resizable: false` turns it off.
+- **Look**: the `--tk-*` variables and the `--qs-*` tone colours. `labels`
+  replaces every built-in string.
+
+`examples/questions.html` shows a two-answer list on 1 and 2, and with
+`?scale=5` five numbered answers with comments. A static page without a
+bundler vendors one file: `bun build src/questions.js --format esm`, plus the
+three stylesheets concatenated.
+
+## Column widths
+
+`triage-kit/columns` lets the user drag column widths on any list that uses
+the `list.css` grid. Widths are an array in column order: a number is a fixed
+px width, `null` a flexible column.
+
+```js
+import {mountColumnResize} from 'triage-kit/columns'
+
+mountColumnResize(document.querySelector('.tk-head'), {
+  widths: [240, null, 84], storage: localStorage, storageKey: 'inbox:columns',
+  apply: template => page.style.setProperty('--tk-columns', template),
+})
+```
+
+Each header cell with a resizable boundary gets a handle on its right edge. A
+fixed column grows with its handle; the handle of a flexible column shrinks
+the fixed column after it. Widths are saved when a drag ends, and a
+double-click restores the defaults. `resizeColumn`, `columnTemplate` and
+`readWidths` are the pure parts, for a framework that draws its own handles.
+The handles are pointer-only.
+
+## React
+
+```js
+import {useTriageList} from 'triage-kit/react'
+
+const t = useTriageList({
+  ids, commit: items => api.decide(items),          // all-or-nothing on your server
+  keys: {1: 'set:keep', 2: 'set:trash'},
+  onAction: route => { if (route.action.startsWith('set:')) decide(route.action.slice(4)); else return false },
+})
+// <ul {...t.listProps}>{rows.map(r => <li key={r.id} {...t.rowProps(r.id)}>…</li>)}</ul>
+// t.run(items, {label, left, record}) · t.undo() · t.toast · t.selection · t.current
+```
+
+`useTriageList` is thin wiring over the pure `triageReducer` (exported from the
+core, so the same state machine works without React). `run` moves the cursor
+at once (contract §4), shows a pending toast, calls `commit`, then shows the
+result or restores the selection, and returns focus to the list. A press while
+a batch is in flight is dropped. `queue` resets the selection when it changes;
+a failure from an older queue does not restore into the new one.
+
+Undo: by default the hook keeps the last 50 batches in memory and replays the
+previous decisions (lost on reload, no changed-since check). That is a
+deviation from the contract's durable server history; pass `onUndo` to own
+undo yourself, for example by posting the last batch id to your server.
+
+React is an optional peer dependency: only `triage-kit/react` and
+`triage-kit/workbench` import it.
+
+## Optional React workbench
+
+```jsx
+import {TriageWorkbench} from 'triage-kit/workbench'
+import 'triage-kit/workbench.css'   // page layout; imports list.css
+```
+
+A controlled page shell that renders the list markup above, with slots for
+`navigation`, `toolbar`, optional `head` labels, `inspector`, `actions` and
+`status`. Rows are `{id, leading?, title, trailing?}`, one line each (three
+cells on `--tk-columns`). Pass `selection`, `current` and `onSelect(id,
+extend)`; pass `listRef` and `onKeyDown` to connect the core key helpers or
+your own adapter, and `inspectorRef` for Enter-to-inspect. The cursor row is
+scrolled into view when `current` changes; Ctrl/⌘-click does not change the
+selection. Row cells are text, not controls. Labels are
+caller-owned.
+
+The component owns no data, routes, decisions or undo history. Restyle it with
+the same variables as `list.css`, set on any ancestor. React is an optional
+peer; the core stays dependency-free. `node examples/workbench.mjs` writes a
+static page to look at.
+
+## shadcn components
+
+Install from the registry in this repository (each item pins the matching
+`triage-kit` release):
+
+```sh
+npx shadcn add https://raw.githubusercontent.com/andyhennie/triage-kit/v0.2.1/public/r/triage.json
+```
+
+| Item | What |
+|---|---|
+| `triage-listbox` | `TriageLayout`, `TriageColumns` (list and inspector side by side from 520 px of container width, only the list scrolls), `TriageListbox`, `TriageRow` |
+| `triage-inspector` | `TriageInspector`, `TriageHelp` (one line of keys), `TriageAction` (button with `<kbd>`, `aria-keyshortcuts`, `title`); uses shadcn's `kbd` |
+| `triage-footer` | "N selected · total", key hints, toast |
+| `triage-toast` | `role="status"` live region |
+| `triage` | all of the above |
+
+## Demo
+
+```sh
+cd demo && npm install && npm run dev      # or: npm run build && npm run e2e
+```
+
+A made-up invoice queue with keep / later / trash, Enter to approve the
+suggestion and U to undo. `demo/e2e.mjs` checks the contract in a real
+browser: optimistic cursor while a request is pending, one request for a
+double press, restore on failure, undo keeping the cursor, focus, guards on
+buttons and fields, aria, and that only the list scrolls.
+
+## Newsletter triage
+
+`examples/newsletters.html` is a real question list (`mountQuestions`): newsletters and
+offers from the mail backend's inbox, one row and one keyboard decision per sender. It is a
+split view: the senders on the left, and beside them (via `onCurrent`) the cursor's
+sender with Jev's proposal, the keys as buttons, its emails, and the newest email
+rendered in a sandboxed frame with no scripts; ↓ shows the next one at once.
+
+```sh
+node examples/newsletters-server.mjs        # http://127.0.0.1:4296/ → mail backend on 4280
+```
+
+Each sender's proposal is the most common Jev proposal across its emails (shown as
+"Jev 10/13"). The mail backend's existing typed answers decide an email when exactly one action
+follows from them; otherwise the page asks the mail backend's one-question Jev Choice
+(`/api/items/:id/jev_decision`, sanitized text only, cached). Enter accepts the proposal,
+← → or a letter override it: A archive, K Kuppis/Tilbud (label + archive), X unsubscribe,
+B keep, T task, R reply. Unsubscribe and reply reach other people: Enter only opens a
+confirmation naming the senders (Cancel focused, J says yes) or the Gmail thread, never
+sends. A decision waits 8 s before the mail backend gets it, and U calls it back until then;
+after that, archiving cannot be undone here. Keep is local to the browser. The server
+forwards only the calls the page needs, with the mail backend's CSRF token.
+`examples/newsletters-e2e.mjs` checks it in a browser against a fake mail backend.
+
+### Offers by category (prototype)
+
+`examples/offers.html` (linked from the newsletter page) shows the offers the mail backend has
+read out of store emails, by kind of product rather than by store: pick Sport and go
+through every sports offer one picture at a time. ↵ or → is next, L saves it,
+← or U undoes, 1–8 pick a category. The same product from several stores or emails is one
+card, cheapest first (`examples/offers-model.js`). A decision is stored on the offer in the
+mail backend, the same state its own offer triage uses. Jev also judges who each product is
+for and what kind of thing it is: F switches between "for me" (men and unisex), "for my partner",
+children and all, and ↑ ↓ step the sub-categories (jackets, pants, shoes …) of the category.
 
 ## Tests
 

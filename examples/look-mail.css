@@ -1,0 +1,6 @@
+/* A mail inbox composition: sender · subject · date. Only columns and type; colours, row
+   height, selection and padding come from list.css (and the app's own tokens). */
+.mail { --tk-columns: 240px minmax(0, 1fr) 84px; }
+.mail .sender { font-size: 12px; font-weight: 500; }
+.mail .subject { font-size: 13px; }
+.mail .date { font-size: 12px; color: var(--muted-foreground, #71717a); text-align: right; }
